@@ -1,12 +1,20 @@
 {
-  "name": "lemonsync.js",
+  "name": "lemonsync-js",
   "version": "1.0.0",
-  "description": "",
-  "main": "lemonsync.js",
+  "description": "Tool for Lemon-sync'ing",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "author": "Tom Cornall",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tomcornall/lemonsync-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tomcornall/lemonsync-js/issues"
+  },
+  "homepage": "https://github.com/tomcornall/lemonsync-js#readme"
 }
