@@ -1,5 +1,5 @@
 {
-  "name": "lemonsync-js",
+  "name": "lemonsync",
   "version": "1.0.0",
   "description": "Tool for Lemon-sync'ing",
   "main": "index.js",
