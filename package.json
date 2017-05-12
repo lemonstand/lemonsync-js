@@ -1,8 +1,8 @@
 {
-  "name": "lemonsync",
+  "name": "lemonsync-v2",
   "version": "1.0.0",
   "description": "Tool for Lemon-sync'ing",
-  "main": "index.js",
+  "main": "lemonsync.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
