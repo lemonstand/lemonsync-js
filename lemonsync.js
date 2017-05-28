@@ -1,26 +1,12 @@
-var AWS = require('aws-sdk'),
-    request = require('request'),
-    s3 = new AWS.S3();
-const fs = require('fs'),
-      readline = require('readline');
-inputReader = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+var AWS      = require('aws-sdk'),
+    s3       = new AWS.S3(),
+    request  = require('request'),
+    fs       = require('fs'),
+    readline = require('readline');
 
-var inputAnswer;
-
-var s3ObjectList;
-var localFilePaths;
-var bucket;
-var failed = [];
-
-var s3Paths = [];
-var s3Files = {};
-var localFiles = [];
-var changedLocalFiles = {};
-var newLocalFiles = {};
-
+/**
+ * S3 security variables
+ */
 var accessKeyId,
     secretAccessKey,
     sessionToken,
@@ -30,22 +16,21 @@ var accessKeyId,
 
 var watchDir = 'zest';
 
-    // IF THIS IS WRONG?
 getIdentity(
     'http://testetattaet.local.io/api/v2/identity/s3',
     'ewoViNsN9JMGFbjFNJ3oxroK1o7ufMkxeSb65HLS',
-    getS3ListOfObjects
+    getS3ListOfObjects // callback on completion
 );
-
 
 /**
  * @param s3Files - array of key/body objects that make up a theme
  */
 function compareS3FilesWithLocal(s3Files, prefix) {
-
-    localFilePaths = listFullFilePaths(watchDir);
-
+    var changedLocalFiles = {};
+    var newLocalFiles = {};
     var count = 0;
+
+    var localFilePaths = listFullFilePaths(watchDir);
 
     localFilePaths.forEach( function( localFilePath, index ) {
         fs.readFile(localFilePath, 'utf8', function(err, localFileBody) {
@@ -65,10 +50,14 @@ function compareS3FilesWithLocal(s3Files, prefix) {
                 console.log('Done comparing local/S3 files...');
                 Object.assign(changedLocalFiles, newLocalFiles);
 
+                inputReader = readline.createInterface({
+                    input: process.stdin,
+                    output: process.stdout
+                });
+
                 inputReader.question('\r\nDo you want to overwrite your files?\r\n\r\n(yes/no)\r\n\r\n', (answer) => {
-                    inputAnswer = answer;
                     inputReader.close();
-                    if (inputAnswer == 'yes') {
+                    if (answer == 'yes') {
                         uploadChangedFiles(changedLocalFiles);
                     }
                 });
@@ -143,6 +132,7 @@ function watchForChanges() {
  * @param prefix = store-testetattaet-587d6a9cc922c/themes/
  */
 function getS3Objects(s3ObjectList, prefix) {
+    var s3Files = {};
 
     if (s3ObjectList.isTruncated) {
         console.log("Too many store files! We truncated this list to our maximum sync size.");
@@ -223,18 +213,12 @@ function getIdentity(apiHost, apiCode, cb) {
 }
 
 function getS3ListOfObjects(identityData) {
-
     accessKeyId = identityData.key;
     secretAccessKey = identityData.secret;
     sessionToken = identityData.token;
     bucket = identityData.bucket;
-    // prefix = prefix + identityData.theme;
     store = identityData.store;
-
-
-    var creds = new AWS.Credentials({
-        accessKeyId: identityData.key, secretAccessKey: identityData.secret, sessionToken: identityData.token
-    });
+    prefix = store + '/themes/';
 
     AWS.config.update({
         accessKeyId: identityData.key,
@@ -242,7 +226,6 @@ function getS3ListOfObjects(identityData) {
         sessionToken: identityData.token,
     });
 
-    prefix = identityData.store + '/themes/';
     var listObjectsV2Params = {
         Bucket: identityData.bucket,
         Prefix: prefix + identityData.theme,
