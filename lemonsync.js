@@ -14,11 +14,12 @@ var accessKeyId,
     prefix,
     store;
 
-var watchDir = 'zest';
+var watchDir = 'zest',
+    storeName = 'http://testetattaet.local.io',
+    apiCode = 'ewoViNsN9JMGFbjFNJ3oxroK1o7ufMkxeSb65HLS';
 
 getIdentity(
-    'http://testetattaet.local.io/api/v2/identity/s3',
-    'ewoViNsN9JMGFbjFNJ3oxroK1o7ufMkxeSb65HLS',
+    apiCode,
     getS3ListOfObjects // callback on completion
 );
 
@@ -63,9 +64,7 @@ function compareS3FilesWithLocal(s3Files, prefix) {
                 });
             }
         });
-
     });
-
 }
 
 function uploadChangedFiles(changedFiles) {
@@ -74,17 +73,17 @@ function uploadChangedFiles(changedFiles) {
     var count = 0;
     for (var key in changedFiles) {
         if (changedFiles.hasOwnProperty(key)) {
-            // do stuff
             var params = {
                 Bucket: bucket,
                 Key: key,
                 Body: changedFiles[key]
             };
+
             s3.putObject(params, function(err, data) {
                 count++;
                 if (err) console.log(err, err.stack); // an error occurred
                 else {
-                    console.log(data); // successful response
+                    console.log(data);
                     console.log(key);
                     if (Object.keys(changedFiles).length == count) {
                         console.log(Object.keys(changedFiles).length);
@@ -113,11 +112,14 @@ function watchForChanges() {
                     Key: key,
                     Body: localFileBody
                 };
+
                 s3.putObject(params, function(err, data) {
                     if (err) console.log(err, err.stack);
                     else {
                         console.log(key);
-                        console.log('\r\nDone uploading WATCHED files...');
+                        console.log('\r\nUpdated watched file...');
+                        var arr = [filename];
+                        touchLSCache(arr);
                     }
                 });
             });
@@ -125,6 +127,43 @@ function watchForChanges() {
             console.log('filename not provided');
         }
     });
+}
+
+function touchLSCache(keys) {
+    // key example: pages/about/page-about.htm
+
+    var apiHost = storeName + '/api/v2/resource/touch';
+
+    var options = {
+        url: apiHost,
+        method: 'PUT',
+        headers: {
+            'Authorization': 'Bearer ' + apiCode,
+            'Content-Type': 'application/json'
+        },
+        json: { 'keys': keys }
+    };
+
+    function callback(error, response, body) {
+        if (!error && response.statusCode == 200) {
+            // var body = JSON.parse(body);
+
+            if (response.statusCode == 401) {
+                console.log("The API Access Token isn't valid for "+apiHost+". Please check that your Access Token is correct and not expired.");
+            }
+            if (response.statusCode != 200) {
+                console.log("Could not connect to LemonStand! Didn't get 200!");
+            } else {
+                console.log('\r\nTouched Resource!')
+            }
+
+            // console.log(body);
+
+            // cb(body.data);
+        }
+    }
+
+    request(options, callback);
 }
 
 /**
@@ -182,7 +221,9 @@ function listFullFilePaths(dir, filelist) {
 /**
  * Get s3 identity data from store API /identity/s3 endpoint
  */
-function getIdentity(apiHost, apiCode, cb) {
+function getIdentity(apiCode, cb) {
+    var apiHost = storeName + '/api/v2/identity/s3';
+
     var options = {
         url: apiHost,
         method: 'POST',
