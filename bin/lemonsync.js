@@ -1,3 +1,4 @@
+#! /usr/local/bin/node
 var AWS      = require('aws-sdk'),
     s3       = new AWS.S3(),
     request  = require('request'),
@@ -14,7 +15,7 @@ var accessKeyId,
     prefix,
     store;
 
-var watchDir = __dirname,
+var watchDir = process.cwd(),
     theme = watchDir.match(/([^\/]*)\/*$/)[1],
     storeName,
     apiKey,
