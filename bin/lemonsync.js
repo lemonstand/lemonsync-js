@@ -5,8 +5,8 @@ var AWS      = require('aws-sdk'),
     fs       = require('fs'),
     readline = require('readline'),
     mkdirp   = require('mkdirp'),
-    pathModule = require('path');
-
+    pathModule = require('path'),
+    ignore = require("ignore");
 
 /**
  * S3 security variables
@@ -22,7 +22,8 @@ var watchDir = process.cwd(),
     theme = watchDir.match(/([^\/]*)\/*$/)[1],
     storeName,
     apiKey,
-    localConfig = 'lemonsync.json';
+    localConfig = 'lemonsync.json',
+    ign;
 
 readConfig();
 
@@ -36,6 +37,8 @@ function readConfig() {
          */
         storeName = storeName.replace(/\/$/, "");
         apiKey = json.api_key;
+        var ignorePatterns = json.ignore_patterns;
+        ign = ignore().add(ignorePatterns);
         getIdentity(
             apiKey,
             getS3ListOfObjects // callback on completion
@@ -59,7 +62,13 @@ function compareS3FilesWithLocal(s3Files, prefix) {
 
     var localFilePaths = listFullFilePaths(watchDir);
 
+    /**
+     * Ignore file patterns
+     */
+    localFilePaths = ign.filter(localFilePaths);
+
     localFilePaths.forEach( function( localFilePath, index ) {
+
 
         localFileBody = fs.readFileSync(localFilePath, 'utf8');
         count++;
@@ -314,17 +323,17 @@ function getS3Objects(s3ObjectList, prefix) {
  * List all files in a directory in Node.js recursively
  */
 function listFullFilePaths(dir, filelist) {
-  files = fs.readdirSync(dir);
-  filelist = filelist || [];
-  files.forEach(function(file) {
-    if (fs.statSync(dir + '/' + file).isDirectory()) {
-      filelist = listFullFilePaths(dir + '/' + file, filelist);
-    }
-    else {
-      filelist.push(dir + '/' + file);
-    }
-  });
-  return filelist;
+    files = fs.readdirSync(dir);
+    filelist = filelist || [];
+    files.forEach(function(file) {
+        if (fs.statSync(dir + '/' + file).isDirectory()) {
+            filelist = listFullFilePaths(dir + '/' + file, filelist);
+        }
+        else {
+            filelist.push(dir + '/' + file);
+        }
+    });
+    return filelist;
 };
 
 /**
