@@ -9,7 +9,7 @@ To install LemonSync, first install [Node.js](https://nodejs.org/en/). This come
 $ 🍋  npm -v
 ```
 
-Now you can install LemonSync:
+With npm you can now install LemonSync:
 ```
 $ 🍋  [sudo] npm install lemonsync -g
 ```
