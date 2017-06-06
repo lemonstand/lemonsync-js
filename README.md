@@ -1,15 +1,15 @@
-# lemonsync-js
+# LemonSync
 A Javascript tool to sync local file changes with a live [LemonStand](https://lemonstand.com/) store.
 
 ## Installation
 
-To install lemonsync, first install [Node.js](https://nodejs.org/en/). This comes with npm, the package manager for node.js applications. To confirm that you have npm installed you can run this command in your terminal:
+To install LemonSync, first install [Node.js](https://nodejs.org/en/). This comes with npm, the package manager for node.js applications. To confirm that you have npm installed you can run this command in your terminal:
 
 ```
 $ 🍋  npm -v
 ```
 
-Now you can install lemonsync:
+Now you can install LemonSync:
 ```
 $ 🍋  [sudo] npm install lemonsync -g
 ```
@@ -27,6 +27,8 @@ $ 🍋  [sudo] npm install lemonsync -g
   "ignore_patterns": [ "*.tmp", "*/.git*"]
 }
 ```
+
+[lemonsync.json](https://raw.githubusercontent.com/tomcornall/lemonsync-js/master/lemonsync.json)
 
 3. From within the theme folder, run:
 
