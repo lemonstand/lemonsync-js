@@ -1,6 +1,6 @@
 {
-  "name": "lemonsync-v2",
-  "version": "1.0.0",
+  "name": "lemonsync",
+  "version": "1.0.1",
   "description": "Tool for Lemon-sync'ing",
   "main": "lemonsync.js",
   "scripts": {
@@ -16,5 +16,11 @@
   "bugs": {
     "url": "https://github.com/tomcornall/lemonsync-js/issues"
   },
-  "homepage": "https://github.com/tomcornall/lemonsync-js#readme"
+  "homepage": "https://github.com/tomcornall/lemonsync-js#readme",
+  "dependencies": {
+    "aws-sdk": "^2.63.0",
+    "fs": "0.0.1-security",
+    "readline": "^1.3.0",
+    "request": "^2.81.0"
+  }
 }
