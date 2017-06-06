@@ -31,6 +31,10 @@ function readConfig() {
         var config = fs.readFileSync(localConfig, 'utf8');
         var json = JSON.parse(config);
         storeName = json.store;
+        /**
+         * Strips trailing slash
+         */
+        storeName = storeName.replace(/\/$/, "");
         apiKey = json.api_key;
         getIdentity(
             apiKey,
