@@ -1,5 +1,5 @@
 # LemonSync
-A Javascript tool to sync local file changes with a live [LemonStand](https://lemonstand.com/) store.
+A tool for syncing local theme files with a live [LemonStand](https://lemonstand.com/) store.
 
 ## Installation
 
@@ -9,7 +9,7 @@ To install LemonSync, first install [Node.js](https://nodejs.org/en/). This come
 $ 🍋  npm -v
 ```
 
-Now you can install LemonSync:
+With npm you can now install LemonSync:
 ```
 $ 🍋  [sudo] npm install lemonsync -g
 ```
