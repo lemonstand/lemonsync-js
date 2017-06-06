@@ -103,17 +103,21 @@ function compareS3FilesWithLocal(s3Files, prefix) {
 
                 if (numberNewLocal > 0) {
                     console.log(numberNewLocal + ' new local file(s) were found.');
+                    // combine objects
                     Object.assign(changedLocalFiles, newLocalFiles);
                 }
                 if (numberNewS3 > 0) {
                     console.log(numberNewS3 + ' new store file(s) were found.');
+                    // combine objects
                     Object.assign(changedRemoteFiles, newS3Files);
                 }
                 if (localPathMatchCount == 0) {
                     console.log('No matching file names were found.\r\n');
-                } else {
+                }
+                if (numberChanged > 0) {
                     console.log(numberChanged + ' file(s) have changed.\r\n');
                 }
+
                 console.log('Do you want to overwrite your local or remote files?\r\n');
 
                 console.log('Type "local" to overwrite your local theme: ' + watchDir);
