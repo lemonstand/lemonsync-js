@@ -6,12 +6,12 @@ JS version of lemonsync
 To install lemonsync, first install [Node.js](https://nodejs.org/en/). This comes with npm, the package manager for node.js applications. To confirm that you have npm installed you can run this command in your terminal:
 
 ```
-npm -v
+$ 🍋  npm -v
 ```
 
 Now you can install lemonsync:
 ```
-[sudo] npm install lemonsync -g
+$ 🍋  [sudo] npm install lemonsync -g
 ```
 
 ## Usage
@@ -31,5 +31,5 @@ Now you can install lemonsync:
 3. From within the theme folder, run:
 
 ```
-lemonsync
+$ 🍋  lemonsync
 ```
