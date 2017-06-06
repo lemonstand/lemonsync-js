@@ -227,6 +227,9 @@ function watchForChanges() {
     fs.watch(watchDir, {recursive: true}, function(eventType, filename) {
         if (filename) {            
             localFilePath = watchDir + '/' + filename;
+            if (ign.ignores(localFilePath)) {
+                return;
+            }
             key = prefix + theme + '/' + filename;
             localFileBody = fs.readFileSync(localFilePath);
             // Reading local file to send to S3
