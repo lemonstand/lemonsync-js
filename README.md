@@ -1,5 +1,5 @@
 # lemonsync-js
-JS version of lemonsync
+A Javascript tool to sync local file changes with a live [LemonStand](https://lemonstand.com/) store.
 
 ## Installation
 
@@ -18,7 +18,7 @@ $ 🍋  [sudo] npm install lemonsync -g
 
 1. Download a theme from your [LemonStand](https://lemonstand.com/) store. 
 
-2. Then create a JSON file, **lemonsync.json** with the following format:
+2. Create a JSON file, **lemonsync.json** and place it in your theme folder. This JSON should contain the following data:
 
 ```
 {
