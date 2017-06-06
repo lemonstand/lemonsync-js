@@ -1,6 +1,6 @@
 {
   "name": "lemonsync",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Tool for Lemon-sync'ing",
   "main": "lemonsync.js",
   "scripts": {
