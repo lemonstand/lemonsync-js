@@ -106,28 +106,31 @@ function compareS3FilesWithLocal(s3Files, prefix) {
                     // combine objects
                     Object.assign(changedLocalFiles, newLocalFiles);
                 }
+
                 if (numberNewS3 > 0) {
                     console.log(numberNewS3 + ' new store file(s) were found.');
                     // combine objects
                     Object.assign(changedRemoteFiles, newS3Files);
                 }
+
                 if (localPathMatchCount == 0) {
-                    console.log('No matching file names were found.\r\n');
-                }
-                if (numberChanged > 0) {
-                    console.log(numberChanged + ' file(s) have changed.\r\n');
+                    console.log('No matching file names were found.');
                 }
 
-                console.log('Do you want to overwrite your local or remote files?\r\n');
+                if (numberChanged > 0) {
+                    console.log(numberChanged + ' file(s) have changed.');
+                }
+
+                console.log('\r\nDo you want to overwrite your local or remote files?\r\n');
 
                 console.log('Type "local" to overwrite your local theme: ' + watchDir);
                 console.log('Type "remote" to overwrite your store\'s theme: ' + theme + '\r\n');
 
                 readInput.prompt();
                 readInput.on('line', function(answer) {
-                    if (answer == 'remote') {
+                    if (answer == 'remote' && (numberNewLocal > 0 || numberChanged > 0)) {
                         uploadLocalToStore(changedLocalFiles);
-                    } else if (answer == 'local') {
+                    } else if (answer == 'local' && (numberNewS3 > 0 || numberChanged > 0)) {
                         overwriteLocalWithStore(changedRemoteFiles);
                     } else if (answer == 'lemons') {
                         console.log('\r\n🍋 🍋 🍋 🍋 🍋 🍋 🍋  Yummy! 🍋 🍋 🍋 🍋 🍋 🍋 🍋\r\n');
