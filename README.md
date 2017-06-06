@@ -1,5 +1,5 @@
 # LemonSync
-A Javascript tool to sync local file changes with a live [LemonStand](https://lemonstand.com/) store.
+A tool for syncing local theme files with a live [LemonStand](https://lemonstand.com/) store.
 
 ## Installation
 
