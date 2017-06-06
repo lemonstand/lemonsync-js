@@ -14,64 +14,120 @@ var accessKeyId,
     prefix,
     store;
 
-var watchDir = 'zest',
-    storeName = 'http://testetattaet.local.io',
-    apiCode = 'ewoViNsN9JMGFbjFNJ3oxroK1o7ufMkxeSb65HLS';
+var watchDir = __dirname,
+    theme = watchDir.match(/([^\/]*)\/*$/)[1],
+    storeName,
+    apiKey,
+    localConfig = 'lemonsync.json';
 
-getIdentity(
-    apiCode,
-    getS3ListOfObjects // callback on completion
-);
+readConfig();
+
+function readConfig() {
+    var config = fs.readFileSync(localConfig, 'utf8');
+    var json = JSON.parse(config);
+    storeName = json.store;
+    apiKey = json.api_key;
+    getIdentity(
+        apiKey,
+        getS3ListOfObjects // callback on completion
+    );
+}
 
 /**
  * @param s3Files - array of key/body objects that make up a theme
  */
 function compareS3FilesWithLocal(s3Files, prefix) {
     var changedLocalFiles = {};
+    var changedRemoteFiles = {};
     var newLocalFiles = {};
     var count = 0;
 
     var localFilePaths = listFullFilePaths(watchDir);
-
     localFilePaths.forEach( function( localFilePath, index ) {
-        fs.readFile(localFilePath, 'utf8', function(err, localFileBody) {
-            count++;
 
-            if (localFilePath in s3Files) {
-                // Local file exists in s3, compare bodies:
-                if (s3Files[localFilePath] !== localFileBody) {
-                    changedLocalFiles[prefix + 'test/' + localFilePath] = localFileBody;
-                } else {
-                    console.log('- s3Body matches Local body');
-                }
+        localFileBody = fs.readFileSync(localFilePath, 'utf8');
+        count++;
+
+        shortLocalPath = localFilePath.replace(watchDir, theme);
+
+        if (shortLocalPath in s3Files) {
+            // Local file exists in s3, compare bodies:
+            if (s3Files[shortLocalPath] !== localFileBody) {
+                // Files are different, store in array of changed files.
+                changedLocalFiles[prefix + shortLocalPath] = localFileBody;
+                changedRemoteFiles[localFilePath] = s3Files[shortLocalPath];
+            }
+        } else {
+            // New remote file found, store in array of new files.
+            newLocalFiles[prefix + shortLocalPath] = localFileBody;
+        }
+        if (localFilePaths.length == count) {
+            numberChanged = Object.keys(changedLocalFiles).length;
+            numberNew = Object.keys(newLocalFiles).length;
+
+            if (numberChanged == 0) {
+                console.log('Store theme and local theme match!')
+                watchForChanges();
             } else {
-                newLocalFiles[prefix + 'test/' + localFilePath] = localFileBody;
-            }
-            if (localFilePaths.length == count) {
-                console.log('Done comparing local/S3 files...');
-                Object.assign(changedLocalFiles, newLocalFiles);
-
-                inputReader = readline.createInterface({
+                /**
+                 * Interface for reading typed user input
+                 */
+                readInput = readline.createInterface({
                     input: process.stdin,
-                    output: process.stdout
+                    output: process.stdout,
+                    prompt: '🍋  >'
                 });
+                console.log(numberChanged + ' file[s] are different. Do you want to overwrite your local or remote files?\r\n');
 
-                inputReader.question('\r\nDo you want to overwrite your files?\r\n\r\n(yes/no)\r\n\r\n', (answer) => {
-                    inputReader.close();
-                    if (answer == 'yes') {
-                        uploadChangedFiles(changedLocalFiles);
+                console.log('Type "local" to overwrite your local theme: /Users/tomcornall/Documents/themes/zest');
+                console.log('Type "remote" to overwrite your store\'s theme: Zest\r\n');
+
+                readInput.prompt();
+                readInput.on('line', function(answer) {
+                    if (answer == 'remote') {
+                        uploadLocalToStore(changedLocalFiles);
+                    } else if (answer == 'local') {
+                        overwriteLocalWithStore(changedRemoteFiles);
+                    } else {
+                        watchForChanges();
                     }
+                    readInput.close();
                 });
             }
-        });
+
+        }
     });
 }
 
-function uploadChangedFiles(changedFiles) {
-    console.log('changing files...');
-    console.log(bucket);
+function overwriteLocalWithStore(changedFiles) {
+    console.log('\r\nOverwriting local theme files...\r\n');
     var count = 0;
+
     for (var key in changedFiles) {
+        if (changedFiles.hasOwnProperty(key)) {
+            try {
+                fs.writeFileSync(key, changedFiles[key]);
+                console.log('- ' + key);
+            } catch (err) {
+                console.log(err, err.stack);
+            }
+        }
+    }
+
+    // Watch for changes can catch these local file writes if we run it instantly
+    setTimeout(watchForChanges, 30);
+}
+
+function uploadLocalToStore(changedFiles) {
+    var putObjectPromises = [];
+    var cacheKeys = [];
+    console.log('\r\nOverwriting store\'s theme...\r\n');
+    var count = 0;
+
+    for (var key in changedFiles) {
+        var cacheKey = key.replace(prefix + theme + '/', '');
+
+        cacheKeys.push(cacheKey);
         if (changedFiles.hasOwnProperty(key)) {
             var params = {
                 Bucket: bucket,
@@ -79,66 +135,68 @@ function uploadChangedFiles(changedFiles) {
                 Body: changedFiles[key]
             };
 
-            s3.putObject(params, function(err, data) {
-                count++;
-                if (err) console.log(err, err.stack); // an error occurred
-                else {
-                    console.log(data);
-                    console.log(key);
-                    if (Object.keys(changedFiles).length == count) {
-                        console.log(Object.keys(changedFiles).length);
-                        console.log(count);
-                        console.log('\r\nDone uploading changed files...');
-                        watchForChanges();
-                    }
-                }
-            });
+            var putObjectPromise = s3.putObject(params).promise();
+            count++;
+            putObjectPromises.push(putObjectPromise);
+            if (putObjectPromises.length == Object.keys(changedFiles).length) {
+                Promise.all(putObjectPromises).then(function(dataArray) {                    
+                    /**
+                     * Since this is overwriting store files, we need to update the cache
+                     */
+                    touchLSCache(cacheKeys);
+                    cacheKeys.forEach(function(value) {
+                        console.log('- ' + value.replace(prefix, ''));
+                    })
+                    watchForChanges();
+                }).catch(function(err) {
+                    console.log(err, err.stack);
+                });
+                
+            }
         }
     }
 }
 
 function watchForChanges() {
-    fs.watch(watchDir, {recursive: true}, function(eventType, filename) {
-        console.log(`event type is: ${eventType}`);
-        if (filename) {
-            console.log(`- ${filename} touched`);
-            console.log('prefix: ' + prefix);
-            localFilePath = watchDir + '/' + filename;
-            key = prefix + localFilePath;
-            fs.readFile(localFilePath, 'utf8', function(err, localFileBody) {
-                // Reading local file to send to S3
-                var params = {
-                    Bucket: bucket,
-                    Key: key,
-                    Body: localFileBody
-                };
+    console.log('\r\n🍋  Watching for changes... 🍋\r\n');
 
-                s3.putObject(params, function(err, data) {
-                    if (err) console.log(err, err.stack);
-                    else {
-                        console.log(key);
-                        console.log('\r\nUpdated watched file...');
-                        var arr = [filename];
-                        touchLSCache(arr);
-                    }
-                });
+    fs.watch(watchDir, {recursive: true}, function(eventType, filename) {
+        if (filename) {            
+            localFilePath = watchDir + '/' + filename;
+            key = prefix + theme + '/' + filename;
+            localFileBody = fs.readFileSync(localFilePath);
+            // Reading local file to send to S3
+            var params = {
+                Bucket: bucket,
+                Key: key,
+                Body: localFileBody
+            };
+
+            var putObjectPromise = s3.putObject(params).promise();
+            putObjectPromise.then(function(data) {
+                console.log(`- ${filename} touched`);
+                var cacheKeys = [filename];
+                touchLSCache(cacheKeys);               
+            }).catch(function(err) {
+                console.log(err, err.stack);
             });
         } else {
-            console.log('filename not provided');
+            console.log('Filename not provided');
         }
     });
 }
 
+/**
+ * @param keys - example: [ "pages/about/page-about.htm" ]
+ */
 function touchLSCache(keys) {
-    // key example: pages/about/page-about.htm
-
     var apiHost = storeName + '/api/v2/resource/touch';
 
     var options = {
         url: apiHost,
         method: 'PUT',
         headers: {
-            'Authorization': 'Bearer ' + apiCode,
+            'Authorization': 'Bearer ' + apiKey,
             'Content-Type': 'application/json'
         },
         json: { 'keys': keys }
@@ -146,20 +204,14 @@ function touchLSCache(keys) {
 
     function callback(error, response, body) {
         if (!error && response.statusCode == 200) {
-            // var body = JSON.parse(body);
-
             if (response.statusCode == 401) {
                 console.log("The API Access Token isn't valid for "+apiHost+". Please check that your Access Token is correct and not expired.");
             }
             if (response.statusCode != 200) {
                 console.log("Could not connect to LemonStand! Didn't get 200!");
             } else {
-                console.log('\r\nTouched Resource!')
+                // Cache successfully updated.
             }
-
-            // console.log(body);
-
-            // cb(body.data);
         }
     }
 
@@ -167,8 +219,8 @@ function touchLSCache(keys) {
 }
 
 /**
- * @param s3ObjectList = data returned in listObjectsV2 - http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#listObjectsV2-property
- * @param prefix = store-testetattaet-587d6a9cc922c/themes/
+ * @param s3ObjectList - data returned in listObjectsV2 via http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#listObjectsV2-property
+ * @param prefix - Example: "store-testetattaet-587d6a9cc922c/themes/"
  */
 function getS3Objects(s3ObjectList, prefix) {
     var s3Files = {};
@@ -183,20 +235,17 @@ function getS3Objects(s3ObjectList, prefix) {
             Bucket: bucket,
             Key: s3FileObject.Key
         };
-        s3.getObject(params, function(err, data) {
-            if (err) {
-                console.log(err, err.stack);
-            }
-            else {
-                s3FileBody = data.Body.toString('utf-8');
-                s3Files[s3Path] = s3FileBody;
+        var getObjectPromise = s3.getObject(params).promise();
+        getObjectPromise.then(function(data) {             
+            s3FileBody = data.Body.toString('utf-8');
+            s3Files[s3Path] = s3FileBody;
 
-                if (Object.keys(s3Files).length === s3ObjectList.KeyCount) {
-                    // Done getting s3 objects
-                    console.log("HOLY DONE!!!");
-                    compareS3FilesWithLocal(s3Files, prefix);
-                }
+            if (Object.keys(s3Files).length === s3ObjectList.KeyCount) {
+                // Done getting s3 objects
+                compareS3FilesWithLocal(s3Files, prefix);
             }
+        }).catch(function(err) {
+            console.log(err, err.stack);
         });
     });
 }
@@ -221,14 +270,15 @@ function listFullFilePaths(dir, filelist) {
 /**
  * Get s3 identity data from store API /identity/s3 endpoint
  */
-function getIdentity(apiCode, cb) {
+function getIdentity(apiKey, cb) {
+    console.log('🍋  Connecting to your store... 🍋\r\n');
     var apiHost = storeName + '/api/v2/identity/s3';
 
     var options = {
         url: apiHost,
         method: 'POST',
         headers: {
-            'Authorization': 'Bearer ' + apiCode,
+            'Authorization': 'Bearer ' + apiKey,
             'Content-Type': 'application/json'
         }
     };
@@ -240,10 +290,10 @@ function getIdentity(apiCode, cb) {
             if (response.statusCode == 401) {
                 console.log("The API Access Token isn't valid for "+apiHost+". Please check that your Access Token is correct and not expired.");
             }
+
             if (response.statusCode != 200) {
-                console.log("Could not connect to LemonStand! Didn't get 200!");
+                console.log("Could not connect to the LemonStand store.");
             } else {
-                console.log('got s3 data!')
             }
 
             cb(body.data);
@@ -278,7 +328,6 @@ function getS3ListOfObjects(identityData) {
             console.log(err, err.stack);
         }
         else {
-            console.log('got AWS data!');
             getS3Objects(objects, prefix);
         }
     });
