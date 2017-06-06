@@ -28,6 +28,8 @@ $ 🍋  [sudo] npm install lemonsync -g
 }
 ```
 
+[lemonsync.json](https://raw.githubusercontent.com/tomcornall/lemonsync-js/master/lemonsync.json)
+
 3. From within the theme folder, run:
 
 ```
