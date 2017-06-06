@@ -24,14 +24,18 @@ var watchDir = process.cwd(),
 readConfig();
 
 function readConfig() {
-    var config = fs.readFileSync(localConfig, 'utf8');
-    var json = JSON.parse(config);
-    storeName = json.store;
-    apiKey = json.api_key;
-    getIdentity(
-        apiKey,
-        getS3ListOfObjects // callback on completion
-    );
+    if (fs.existsSync(localConfig)) {
+        var config = fs.readFileSync(localConfig, 'utf8');
+        var json = JSON.parse(config);
+        storeName = json.store;
+        apiKey = json.api_key;
+        getIdentity(
+            apiKey,
+            getS3ListOfObjects // callback on completion
+        );
+    } else {
+        console.log('🍋  Please create a lemonsync.json file, see our wiki for more information: https://github.com/tomcornall/lemonsync-js 🍋');
+    }
 }
 
 /**
@@ -42,6 +46,7 @@ function compareS3FilesWithLocal(s3Files, prefix) {
     var changedRemoteFiles = {};
     var newLocalFiles = {};
     var count = 0;
+    var localPathMatchCount = 0;
 
     var localFilePaths = listFullFilePaths(watchDir);
     localFilePaths.forEach( function( localFilePath, index ) {
@@ -52,6 +57,7 @@ function compareS3FilesWithLocal(s3Files, prefix) {
         shortLocalPath = localFilePath.replace(watchDir, theme);
 
         if (shortLocalPath in s3Files) {
+            localPathMatchCount++;
             // Local file exists in s3, compare bodies:
             if (s3Files[shortLocalPath] !== localFileBody) {
                 // Files are different, store in array of changed files.
@@ -63,39 +69,55 @@ function compareS3FilesWithLocal(s3Files, prefix) {
             newLocalFiles[prefix + shortLocalPath] = localFileBody;
         }
         if (localFilePaths.length == count) {
-            numberChanged = Object.keys(changedLocalFiles).length;
-            numberNew = Object.keys(newLocalFiles).length;
-
-            if (numberChanged == 0) {
-                console.log('Store theme and local theme match!')
+            if (localPathMatchCount == 0) {
+                console.log('0 matching file names. This theme might not exist in your store - if not, please create an empty theme with the same name.');
                 watchForChanges();
             } else {
-                /**
-                 * Interface for reading typed user input
-                 */
-                readInput = readline.createInterface({
-                    input: process.stdin,
-                    output: process.stdout,
-                    prompt: '🍋  >'
-                });
-                console.log(numberChanged + ' file[s] are different. Do you want to overwrite your local or remote files?\r\n');
+                numberChanged = Object.keys(changedLocalFiles).length;
+                numberNew = Object.keys(newLocalFiles).length;
 
-                console.log('Type "local" to overwrite your local theme: /Users/tomcornall/Documents/themes/zest');
-                console.log('Type "remote" to overwrite your store\'s theme: Zest\r\n');
+                if (numberChanged == 0) {
+                    console.log('Store theme and local theme match!')
+                    watchForChanges();
+                } else {
+                    /**
+                     * Interface for reading typed user input
+                     */
+                    readInput = readline.createInterface({
+                        input: process.stdin,
+                        output: process.stdout,
+                        prompt: '🍋  >'
+                    });
 
-                readInput.prompt();
-                readInput.on('line', function(answer) {
-                    if (answer == 'remote') {
-                        uploadLocalToStore(changedLocalFiles);
-                    } else if (answer == 'local') {
-                        overwriteLocalWithStore(changedRemoteFiles);
-                    } else {
-                        watchForChanges();
+                    if (numberNew > 0) {
+                        console.log(numberNew + ' new local file(s) were found.');
+                        Object.assign(changedLocalFiles, newLocalFiles);
                     }
-                    readInput.close();
-                });
-            }
+                    console.log(numberChanged + ' file(s) have changed.\r\n');
+                    console.log('Do you want to overwrite your local or remote files?\r\n');
 
+                    console.log('Type "local" to overwrite your local theme: ' + watchDir);
+                    console.log('Type "remote" to overwrite your store\'s theme: ' + theme + '\r\n');
+
+                    readInput.prompt();
+                    readInput.on('line', function(answer) {
+                        if (answer == 'remote') {
+                            uploadLocalToStore(changedLocalFiles);
+                        } else if (answer == 'local') {
+                            overwriteLocalWithStore(changedRemoteFiles);
+                        } else if (answer == 'lemons') {
+                            console.log('\r\n🍋 🍋 🍋 🍋 🍋 🍋 🍋  Yummy! 🍋 🍋 🍋 🍋 🍋 🍋 🍋\r\n');
+                        } else if (answer == 'john lemon') {
+                            console.log('██▛█████▜▛▀▀▞▜▜▜█▛▛▛█████████▜███▛███▛▛▀▛█▛█████████████████\r\n█▟▜▙▛██▛▌▌▜▐▐▟▜▛▌▛████████▛█▞▙▘▙▌▛▞▄█▌▌▛▛█████▜█▙█▜█████████\r\n█▟█▟███▟▙▀▞▖▙▜▜▟▟██▛█▛▙█▟▛▜▝▖▝▌▙▜▐▚▖▙▛▞▞███████████████▙█▟▙█\r\n█▟▟▙██▙▙▌▌▚▙▜▜▛▟▞▟▙▛▚▚█▟▚▚▀  ▝▞▟▝▞▖▝▙▌▜▟████████████████████\r\n█▟▙▙█▙█▛█▟▌▙▜▛▌▌▛▌▙▟▜▐▐ ▘   ▖▘▛ ▚▝▖▘ ▛▙█████▙███████████▙█▙█\r\n█▟▟▙███▛█▙▜▞█▜▜▐▐▐▙▜▝▖▖▚▘▝   ▚ ▝ ▚ ▘▘▐▐▙████████████████▜███\r\n█▟▙▜█▛▙█▙▛█▜█▜▞▞▞▙▌▙▚ ▗▘▘  ▖▚▘ ▗▝▗▝ ▚▝▞▜██████████████████▟█\r\n█▟▜█▛██▜▟██▐█▙▜▞▌▌▌▜  ▖ ▝ ▝▗▛    ▘ ▘▗▗▝▖▛█▙██████████▟███▜██\r\n█▟████▟██▜▞▙█▟█▞▌▌▞▐▌▖▗ ▝ ▗▐▖ ▗▝  ▗▝  ▖▞▐▐███████▛█▙██████▛█\r\n█▟▙████▜▟▛█▙██▙▛▌▌▖▖▌ ▗  ▝  ▘▖▖     ▖▘▖▝▝▞▞▛███▛▙████████▙██\r\n█▙███▟▜▛███▟▐▜▙█▚▘▗  ▘       ▝   ▖▘▗ ▖▞▐▝▗▚▜▚███████████████\r\n▙▛█▜▟▛██▟█▛▙▜▜▞█▚▚▖▞▄▖▚▗ ▖ ▗ ▖ ▗▗▗▞▄▙█▟▙█▙▙▙█████████████▙██\r\n█▛▛▙▛██▛███▛▜▀▞▜▛▛▞▘▘▀▜▟▙▚▌▖ ▖▝▗▚█▟██▛▀▀▛████▜▟█████████████\r\n▛█▜█▜█▟████▛▖▚▝▞▖▖▝▝███▟▟▛▙▝   ▖█▜█▚▄▟██▜▙▙▛██████████████▟█\r\n█▛█▟▛███████▖▗▝▖▖▖▄▄▄█▟▛▙▜▄ ▖▘▚▚██▚█▛▙▄▟▙█▟█▛███████████████\r\n█▜▛█▛█████▙▛▀▙▄▗▐▀▀▜█▜▚▀▀ ▚    ▝█▙█▜▜▀███████▜█████████▛▙█▙█\r\n█▜▛▙█████▙█   ▐   ▘▘ ▝ ▞ ▝▐    ▘▜▟▟▌▌▞▖▞▟▟▜▟▞▛▙█▙█████▜█████\r\n█▜▛█▟█▙▙█▙▛▞   ▗    ▖▖▘ ▗▗▘     ▜▟▞▜▐▗▞▞▄▙▜▐▐▐▟▙██████████▛█\r\n█▛█▜▙▙▙██▟▜▖    ▘▖      ▖▖      ▙▙▜▟▝▞▝▞▞▖▘▄▚▜▟█████▙███████\r\n█▜▛█▞███▙▛▙█      ▘▘  ▘▚▝       ▌█▚▚▜▞▄▖▄▐▚▙███▜██████████▜█\r\n███▙█▙█▟█▀▙▜▖▗      ▝▝▝        ▗▐███▐▐▐▞▙▛█▟█▙████▛█████████\r\n█▟▙█▙█▜█▜▛▛▛▞  ▖               ▖██▜█▌▌▖▚▚▜▜▛█████████████▟██\r\n█▛█▙███▟██▟▜▙▝  ▖       ▘     ▗▝▟▛▙█▛▞▞▞▞▟▛███████████▜▟██▙█\r\n██▛█▙█▟▛▙█▜▛▙▝ ▘ ▝       ▝▜▙▖▞▄▟████▜▞▞▐▐▙███▛███▛███████▙██\r\n█▟█▜▟█▙█▛█▚▛█ ▚▗▝           ▘▛███████▐▐▐▚▛██▜███▙███████████\r\n█▜▟██▟▜▙██▜█▜▚ ▖▗▝           ▞▛█████▟▙▙▜▚██▜██████████▛█▙█▛█\r\n███▜▟██▛███▟█▙▗   ▖▝ ▗ ▖▖▗▗ ▝▝▝▞▟█▜▟█▙▛▛█▜▟██████████▟██████\r\n█▙███▙███▟▛█▜▟▄▝ ▘    ▌▙▙▙▄▟▟▄▄▟▟███████▛██████▟███▛███▛▙███\r\n█▜▙█▟▛▙█▟█████▙▌▖▗ ▖ ▘▘▘  ▘▘▘▀▀▀▜▜▛█▛█▟▙██████▜███▜██▛████▙█\r\n██▜▛▙██▛█▟▙█▜███▖▖▖▗▝ ▘     ▚▚▟▟▛█▜▛█▙▙█▙██▛█▟███▟██▛████▜██\r\n█▟████▙███▜▟█▙█▙▜▄▗  ▘   ▗▝▝▞▌▛▙█▜▛█▙▛█▙███████████████▙████\r\n██▜▟█▟█▜█▟██▜█▜▀▞▐▐▐▗ ▖       ▝▝▝▝▞▚▚█▛███▙████████▙██▜███▜█\r\n█▟██▜█▟██▜▛▛▀   ▞▐▐▐▞▖ ▖         ▘▝▞▙████▜███████████████▟██\r\n██▜▟█▛█▜▞▛▝     ▖▘▖▚▐▜▚▗▗ ▖▗ ▖▗▘▞▐▞▟█▙██████████████████████\r\n█▟██▜▛▀▚▚▘       ▘▝▖▚▐▚▙▌▙▐▗▚▞▄▙▜▙██████▜███████████████████\r\n███▝▚▄█▟▟▌      ▝▟▄▄▙▄▙▙███████▟████▟██▟████████████████████');
+                        } else if (answer == 'lemonstand') {
+                            console.log('▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞█\r\n▙▜▝ ▘▝ ▘▝ ▀▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▟\r\n▞▙   ▞▀▗▄  █▞▚▜▞▌▀▝▚▜▝▙▜▝▙▜▝▘▀▐▙▀▞▙▀▞▌▀▝▌▀▝▘▜▞▘▛▟▘▜▞▌▛▝▘▀▐▙▜\r\n▜▟ ▗▀   ▝▖ ▙▜▝▙▜▚▝▘▛▙▗▝▌▖▞▌▞▛▟ ▞ ▞▞ ▛▖▀▙▜▞ ▛▟ ▌▜▞▖▖▜ ▜ ▛▟▖▞█\r\n▙▚ ▝▘   ▞  ▙▙▝▞▙▌▐▜▜▖▐▖▗▘▐▖▚▜▞▘▛▗▙▝ ▛▞▙ ▙▜ █▞▗▄ ▛ ▙▖▘▜ ▛▌▘▟▜\r\n▞▛  ▀▘▄▀   ▙▚▄▄▖▙▄▗▄▙▞▟▜▚▟▟▄▄▗▛▛▄▞▛▄▜▄▗▞▞▙▄▌▌▙▚▙▟▄▚▙▄▜▄▗▄▜▞█\r\n▜▜▄▄▗▖▖▖▖▄▐▞▛▟▐▞▙▚▛▟▐▞▙▙▜▞▄▌▙▜▞▙▙▜▜▞▙▚▛▟▜▟▞▟▜▞▙▚▌▙▜▞▞▙▚▛▞▙▜▟\r\n█▟▟▟▙█▟█▟▙█▟█▟▙█▟▙█▟▙█▟▟▙█▟▟▙█▟▟▟▙▙█▟▙█▟▙▙█▟▙█▟▙█▟▙██▟▙██▟▙█');
+                        } else {
+                            watchForChanges();
+                        }
+                        readInput.close();
+                    });
+                }                
+            }
         }
     });
 }
@@ -287,17 +309,19 @@ function getIdentity(apiKey, cb) {
     function callback(error, response, body) {
         if (!error && response.statusCode == 200) {
             var body = JSON.parse(body);
-
-            if (response.statusCode == 401) {
-                console.log("The API Access Token isn't valid for "+apiHost+". Please check that your Access Token is correct and not expired.");
-            }
-
-            if (response.statusCode != 200) {
-                console.log("Could not connect to the LemonStand store.");
-            } else {
-            }
-
             cb(body.data);
+        } else {
+            if (error) {
+                console.log("Could not connect to your store:");
+                console.log(error.message);
+            }
+            if (response) {
+                if (response.statusCode == 401) {
+                    console.log("The API Access Token isn't valid for "+apiHost+". Please check that your Access Token is correct and not expired.");
+                } else if (response.statusCode != 200) {
+                    console.log("Could not connect to the LemonStand store.");
+                }
+            }
         }
     }
 
@@ -320,7 +344,7 @@ function getS3ListOfObjects(identityData) {
 
     var listObjectsV2Params = {
         Bucket: identityData.bucket,
-        Prefix: prefix + identityData.theme,
+        Prefix: prefix + theme,
         MaxKeys: 10000
     };
 
@@ -329,6 +353,9 @@ function getS3ListOfObjects(identityData) {
             console.log(err, err.stack);
         }
         else {
+            if (objects.KeyCount == 0) {
+                console.log('We couldn\'t find the theme "' + theme + '" in your store. To continue, please create an empty theme with the same name.');
+            }
             getS3Objects(objects, prefix);
         }
     });
