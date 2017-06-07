@@ -19,7 +19,7 @@ var accessKeyId,
     store;
 
 var watchDir = process.cwd(),
-    theme = watchDir.match(/([^\/]*)\/*$/)[1],
+    theme = watchDir.match(/([^\/\\]*)(\/\\)*$/)[1],
     storeName,
     apiKey,
     localConfig = 'lemonsync.json',
