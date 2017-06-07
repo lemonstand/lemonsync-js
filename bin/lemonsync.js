@@ -1,6 +1,6 @@
 #! /usr/local/bin/node
 var AWS      = require('aws-sdk'),
-    s3       = new AWS.S3(),
+    s3,
     request  = require('request'),
     fs       = require('fs'),
     readline = require('readline'),
@@ -389,7 +389,10 @@ function getS3ListOfObjects(identityData) {
         accessKeyId: identityData.key,
         secretAccessKey: identityData.secret,
         sessionToken: identityData.token,
+        region: 'us-east-1'
     });
+
+    s3 = new AWS.S3();
 
     var listObjectsV2Params = {
         Bucket: identityData.bucket,
