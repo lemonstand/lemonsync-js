@@ -6,7 +6,8 @@ var AWS      = require('aws-sdk'),
     readline = require('readline'),
     mkdirp   = require('mkdirp'),
     pathModule = require('path'),
-    ignore = require("ignore");
+    ignore = require("ignore"),
+    rimraf = require("rimraf");
 
 /**
  * S3 security variables
@@ -64,6 +65,20 @@ function readConfig() {
     }
 }
 
+function emptyLocalFolder(path) {
+    fs.readdirSync(path).forEach(function(file,index){
+        if (file == 'lemonsync.json') {
+            return;
+        }
+        var curPath = path + pathModule.sep + file;
+        if(fs.lstatSync(curPath).isDirectory()) { // recurse
+            rimraf.sync(curPath);
+        } else { // delete file
+            fs.unlinkSync(curPath);
+        }
+    });
+}
+
 /**
  * @param s3Files - array of key/body objects that make up a theme
  */
@@ -77,6 +92,15 @@ function compareS3FilesWithLocal(s3Files, prefix) {
     var localPathMatchCount = 0;
 
     var localFilePaths = listFullFilePaths(watchDir);
+    for (var key in s3Files) {
+        if (s3Files.hasOwnProperty(key)) {
+            console.log(key);
+        }
+    }
+    if (process.argv.includes('--reset=local')) {
+        emptyLocalFolder(watchDir);
+        localFilePaths = listFullFilePaths(watchDir);
+    }
 
     /**
      * Ignore file patterns
@@ -132,17 +156,26 @@ function compareS3FilesWithLocal(s3Files, prefix) {
                     output: process.stdout,
                     prompt: '🍋  >'
                 });
+                // combine objects
+                Object.assign(changedLocalFiles, newLocalFiles);
+                Object.assign(changedRemoteFiles, newS3Files);
+
+                if (process.argv.includes('--reset=local')) {
+                    overwriteLocalWithStore(changedRemoteFiles);
+                    return;
+                }
+
+                if (process.argv.includes('--reset=remote')) {
+                    uploadLocalToStore(changedLocalFiles);
+                    return;
+                }
 
                 if (numberNewLocal > 0) {
                     console.log(numberNewLocal + ' new local file(s) were found.');
-                    // combine objects
-                    Object.assign(changedLocalFiles, newLocalFiles);
                 }
 
                 if (numberNewS3 > 0) {
                     console.log(numberNewS3 + ' new store file(s) were found.');
-                    // combine objects
-                    Object.assign(changedRemoteFiles, newS3Files);
                 }
 
                 if (localPathMatchCount == 0) {
@@ -336,16 +369,14 @@ function getS3Objects(s3ObjectList, prefix) {
     }
 
     s3ObjectList.Contents.forEach(function( s3FileObject, index) {
-        if (s3FileObject.Size > 0) {
-            var s3Path = s3FileObject.Key.replace(prefix, '');
-            var params = {
-                Bucket: bucket,
-                Key: s3FileObject.Key
-            };
-            var getObjectPromise = s3.getObject(params).promise();
-            getObjectPromise.then(function(data) {             
-                s3FileBody = data.Body.toString('utf-8');
-                s3Files[s3Path] = s3FileBody;
+        var s3Path = s3FileObject.Key.replace(prefix, '');
+        var params = {
+            Bucket: bucket,
+            Key: s3FileObject.Key
+        };
+        if (process.argv.includes('--reset=remote')) {
+            var deleteObjectPromise = s3.deleteObject(params).promise();
+            deleteObjectPromise.then(function(data) {
                 count++;
                 if (count === s3ObjectList.KeyCount) {
                     // Done getting s3 objects
@@ -355,7 +386,22 @@ function getS3Objects(s3ObjectList, prefix) {
                 console.log(err, err.stack);
             });
         } else {
-            count++;
+            if (s3FileObject.Size > 0) {
+                var getObjectPromise = s3.getObject(params).promise();
+                getObjectPromise.then(function(data) {
+                    s3FileBody = data.Body.toString('utf-8');
+                    s3Files[s3Path] = s3FileBody;
+                    count++;
+                    if (count === s3ObjectList.KeyCount) {
+                        // Done getting s3 objects
+                        compareS3FilesWithLocal(s3Files, prefix);
+                    }
+                }).catch(function(err) {
+                    console.log(err, err.stack);
+                });
+            } else {
+                count++;
+            }
         }
     });
 }
