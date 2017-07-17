@@ -43,13 +43,13 @@ If you need to reset your theme you can pass the `--reset` argument to LemonSync
 options for this argument, `local` and `remote`.
 
 ```
- $ lemonsync --reset=local
+$ 🍋  lemonsync --reset=local
 ```
 
 This will completely replace the contents of the current directory with the contents of your remote theme. All files and folders will be removed. **This is an advanced feature and should be used with caution!**
 
 ```
-$ lemonsync --reset=remote
+$ 🍋  lemonsync --reset=remote
 ```
 
 This will completely replace the contents of your remote theme with the contents of the current directory.
