@@ -39,7 +39,7 @@ $ 🍋  lemonsync
 ## Advanced Options
 
 
-If you need to reset your theme you can pass the `--reset` argument to `LemonSync`. There are two
+If you need to reset your theme you can pass the `--reset` argument to LemonSync. There are two
 options for this argument, `local` and `remote`.
 
 ```
