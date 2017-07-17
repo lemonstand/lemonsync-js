@@ -1,4 +1,4 @@
-#! /usr/local/bin/node
+#!/usr/bin/env node
 var AWS      = require('aws-sdk'),
     s3,
     request  = require('request'),
@@ -31,12 +31,28 @@ function readConfig() {
     if (fs.existsSync(localConfig)) {
         var config = fs.readFileSync(localConfig, 'utf8');
         var json = JSON.parse(config);
-        storeName = json.store;
+        if (json.theme_code) {
+            theme = json.theme_code;
+        } else {
+            console.log('Field "theme_code" not found in lemonsync.json, please add this field.');
+            return;
+        }
+        if (json.store) {
+            storeName = json.store;
+        } else {
+            console.log('Field "store" not found in lemonsync.json, please add this field.');
+            return;
+        }
         /**
          * Strips trailing slash
          */
         storeName = storeName.replace(/\/$/, "");
-        apiKey = json.api_key;
+        if (json.api_token) {
+            apiKey = json.api_token;
+        } else {
+            console.log('Field "api_token" not found in lemonsync.json, please add this field.');
+            return;
+        }
         var ignorePatterns = json.ignore_patterns;
         ign = ignore().add(ignorePatterns);
         getIdentity(
@@ -75,6 +91,7 @@ function compareS3FilesWithLocal(s3Files, prefix) {
 
         shortLocalPath = localFilePath.replace(watchDir, theme);
 
+
         if (shortLocalPath in s3Files) {
             localPathMatchCount++;
             // Local file exists in s3, compare bodies:
@@ -86,8 +103,10 @@ function compareS3FilesWithLocal(s3Files, prefix) {
                 matchingFiles[localFilePath] = localFileBody;
             }
         } else {
-            // New local file found, store in array of new files.
-            newLocalFiles[prefix + shortLocalPath] = localFileBody;
+            if (localFileBody) {
+                // New local file found, store in array of new files.
+                newLocalFiles[prefix + shortLocalPath] = localFileBody;
+            }
         }
 
         if (localFilePaths.length == count) {
@@ -134,6 +153,11 @@ function compareS3FilesWithLocal(s3Files, prefix) {
                     console.log(numberChanged + ' file(s) have changed.');
                 }
 
+                if (numberChanged == 0 && numberNewLocal == 0 && numberNewS3 == 0) {
+                    watchForChanges();
+                    return;
+                }
+
                 console.log('\r\nDo you want to overwrite your local or remote files?\r\n');
 
                 console.log('Type "local" to overwrite your local theme: ' + watchDir);
@@ -164,6 +188,16 @@ function compareS3FilesWithLocal(s3Files, prefix) {
 function overwriteLocalWithStore(changedFiles) {
     console.log('\r\nOverwriting local theme files...\r\n');
     var count = 0;
+
+    if (pathModule.sep == '\\') {
+        for (var key in changedFiles) {
+            if (changedFiles.hasOwnProperty(key)) {
+                newKey = key.replace(/\//g,"\\");
+                changedFiles[newKey] = changedFiles[key];
+                delete changedFiles[key];
+            }
+        }
+    }        
 
     for (var key in changedFiles) {
         if (changedFiles.hasOwnProperty(key)) {
@@ -230,6 +264,10 @@ function watchForChanges() {
             if (ign.ignores(localFilePath)) {
                 return;
             }
+            if (pathModule.sep == '\\') {
+                filename = filename.replace(/\\/g,"/");
+            }
+
             key = prefix + theme + '/' + filename;
             localFileBody = fs.readFileSync(localFilePath);
             // Reading local file to send to S3
