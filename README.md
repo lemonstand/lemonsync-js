@@ -35,3 +35,23 @@ $ 🍋  [sudo] npm install lemonsync -g
 ```
 $ 🍋  lemonsync
 ```
+
+## Advanced Options
+
+
+If you need to reset your theme you can pass the `--reset` argument to `LemonSync`. There are two
+options for this argument, `local` and `remote`.
+
+```
+ $ lemonsync --reset=local
+```
+
+This will completely replace the contents of the current directory with the contents of your remote theme. All files and folders will be removed. **This is an advanced feature and should be used with caution!**
+
+```
+$ lemonsync --reset=remote
+```
+
+This will completely replace the contents of your remote theme with the contents of the current directory.
+
+**This is an advanced feature and should be used with caution! If not careful, you could end up deleting your entire remote theme!**
