@@ -92,11 +92,7 @@ function compareS3FilesWithLocal(s3Files, prefix) {
     var localPathMatchCount = 0;
 
     var localFilePaths = listFullFilePaths(watchDir);
-    for (var key in s3Files) {
-        if (s3Files.hasOwnProperty(key)) {
-            console.log(key);
-        }
-    }
+
     if (process.argv.includes('--reset=local')) {
         emptyLocalFolder(watchDir);
         localFilePaths = listFullFilePaths(watchDir);
