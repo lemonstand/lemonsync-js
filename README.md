@@ -25,7 +25,7 @@ $ 🍋  [sudo] npm install lemonsync -g
   "theme_code": "zest",
   "store": "http://yourstore.lemonstand.com",
   "api_token": "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678910",
-  "ignore_patterns": [ "*.tmp", "*/.git*"]
+  "ignore_patterns": [ "*.tmp", ".git", "lemonsync.json" ]
 }
 ```
 
