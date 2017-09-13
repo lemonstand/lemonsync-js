@@ -6,13 +6,30 @@ A tool for syncing local theme files with a live [LemonStand](https://lemonstand
 To install LemonSync, first install [Node.js](https://nodejs.org/en/). This comes with npm, the package manager for node.js applications. To confirm that you have npm installed you can run this command in your terminal:
 
 ```
-$ 🍋  npm -v
+$ 🍋 npm -v
 ```
 
 With npm you can now install LemonSync:
 ```
-$ 🍋  [sudo] npm install lemonsync -g
+$ 🍋 [sudo] npm install lemonsync -g
 ```
+
+### Uninstalling previous versions of LemonSync
+
+If you have the Python version of LemonSync installed, you will need to uninstall it:
+
+```
+$ 🍋 sudo pip uninstall lemonsync
+```
+
+You can verify that you have LemonSync installed properly by running the following:
+
+```
+$ 🍋 which lemonsync
+/Users/<youruser>/.npm/bin/lemonsync
+```
+
+
 
 ## Usage
 
