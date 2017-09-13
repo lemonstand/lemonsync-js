@@ -29,6 +29,7 @@ $ 🍋 which lemonsync
 /Users/<youruser>/.npm/bin/lemonsync
 ```
 
+_Note: You may need to start your terminal application after uninstalling previous versions of LemonSync._
 
 
 ## Usage
