@@ -9,6 +9,12 @@ var AWS      = require('aws-sdk'),
     ignore = require("ignore"),
     rimraf = require("rimraf");
 
+/** Some CLI defaults */
+var defaults = {
+    scanTimeout: 30,
+    version: '1.0.11'
+};
+
 /**
  * S3 security variables
  */
@@ -24,8 +30,12 @@ var watchDir = process.cwd(),
     storeName,
     apiKey,
     localConfig = 'lemonsync.json',
-    ign;
+    ign,
+    verbose = false;
 
+
+processGlobalCommandLine();
+loadPrivateHelpers();
 readConfig();
 
 function readConfig() {
@@ -66,8 +76,10 @@ function readConfig() {
 }
 
 function emptyLocalFolder(path) {
-    fs.readdirSync(path).forEach(function(file,index){
+    console.details('DELETE', 'Clearing local folder before syncing down');
+    fs.readdirSync(path).forEach(function(file, index) {
         if (file == 'lemonsync.json') {
+            console.details('DELETE', 'Skipping LemonSync configuration');
             return;
         }
         var curPath = path + pathModule.sep + file;
@@ -226,7 +238,7 @@ function overwriteLocalWithStore(changedFiles) {
                 delete changedFiles[key];
             }
         }
-    }        
+    }
 
     for (var key in changedFiles) {
         if (changedFiles.hasOwnProperty(key)) {
@@ -236,13 +248,13 @@ function overwriteLocalWithStore(changedFiles) {
                 fs.writeFileSync(key, changedFiles[key]);
                 console.log('- ' + key);
             } catch (err) {
-                console.log('Error overwriting local file: ' + err.message);
+                console.log('Error overwriting local file (' + key + '): ' + err.message);
             }
         }
     }
 
     // Watch for changes can catch these local file writes if we run it instantly
-    setTimeout(watchForChanges, 30);
+    setTimeout(watchForChanges, defaults.scanTimeout);
 }
 
 function uploadLocalToStore(changedFiles) {
@@ -266,7 +278,7 @@ function uploadLocalToStore(changedFiles) {
             count++;
             putObjectPromises.push(putObjectPromise);
             if (putObjectPromises.length == Object.keys(changedFiles).length) {
-                Promise.all(putObjectPromises).then(function(dataArray) {                    
+                Promise.all(putObjectPromises).then(function(dataArray) {
                     /**
                      * Since this is overwriting store files, we need to update the cache
                      */
@@ -278,7 +290,7 @@ function uploadLocalToStore(changedFiles) {
                 }).catch(function(err) {
                     console.log('Error uploading to store theme: ' + err.message);
                 });
-                
+
             }
         }
     }
@@ -288,7 +300,7 @@ function watchForChanges() {
     console.log('\r\n🍋  Watching for changes... 🍋\r\n');
 
     fs.watch(watchDir, {recursive: true}, function(eventType, filename) {
-        if (filename) {            
+        if (filename) {
             localFilePath = watchDir + '/' + filename;
             if (ign.ignores(localFilePath)) {
                 return;
@@ -310,7 +322,7 @@ function watchForChanges() {
             putObjectPromise.then(function(data) {
                 console.log(`- ${filename} touched`);
                 var cacheKeys = [filename];
-                touchLSCache(cacheKeys);               
+                touchLSCache(cacheKeys);
             }).catch(function(err) {
                 console.log(err, err.stack);
             });
@@ -491,4 +503,29 @@ function getS3ListOfObjects(identityData) {
             getS3Objects(objects, prefix);
         }
     });
+}
+
+// Register private helpers
+
+function loadPrivateHelpers() {
+
+    // Verbose trace helper
+    console.details = function(type) {
+        if (verbose) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            var details = args.join(', ');
+            console.log(type.toUpperCase(), ':', details);
+        }
+    }
+}
+
+function processGlobalCommandLine() {
+    if (process.argv.includes('--version')) {
+        console.log('Version:', defaults.version);
+    }
+
+    if (process.argv.includes('--verbose')) {
+        verbose = true;
+        console.log('Detailed logging is ON');
+    }
 }
