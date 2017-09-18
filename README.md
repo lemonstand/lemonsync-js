@@ -60,5 +60,9 @@ $ 🍋  lemonsync
 
 | Option | Description |
 | ------ | ----------- |
-| `--version` | Show the current tool version                 |
+| `--reset=local` | Overwrite local theme with store version |
+| `--reset=remote` | Overwrite store theme with local version |
+| `--version` | Show the current version of `lemonsync` |
+| `--verbose` | Show additional logging detail |
+| `--network-logging` | Show detail of each network request |
 
