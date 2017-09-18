@@ -117,12 +117,10 @@ function compareS3FilesWithLocal(s3Files, prefix) {
 
     localFilePaths.forEach( function( localFilePath, index ) {
 
-
         localFileBody = fs.readFileSync(localFilePath, 'utf8');
         count++;
 
         shortLocalPath = localFilePath.replace(watchDir, theme);
-
 
         if (shortLocalPath in s3Files) {
             localPathMatchCount++;
@@ -266,6 +264,8 @@ function uploadLocalToStore(changedFiles) {
     for (var key in changedFiles) {
         var cacheKey = key.replace(prefix + theme + '/', '');
 
+        console.details('remote', 'Pushing change for', key);
+
         cacheKeys.push(cacheKey);
         if (changedFiles.hasOwnProperty(key)) {
             var params = {
@@ -275,9 +275,12 @@ function uploadLocalToStore(changedFiles) {
             };
 
             var putObjectPromise = s3.putObject(params).promise();
+            console.details('remote', 'Updated file', key);
+
             count++;
             putObjectPromises.push(putObjectPromise);
             if (putObjectPromises.length == Object.keys(changedFiles).length) {
+                console.details('remote', 'Planning to update cache for', putObjectPromises.length, 'files');
                 Promise.all(putObjectPromises).then(function(dataArray) {
                     /**
                      * Since this is overwriting store files, we need to update the cache
@@ -285,6 +288,7 @@ function uploadLocalToStore(changedFiles) {
                     touchLSCache(cacheKeys);
                     cacheKeys.forEach(function(value) {
                         console.log('- ' + value.replace(prefix, ''));
+                        console.details('remote', 'Updated cache', value);
                     })
                     watchForChanges();
                 }).catch(function(err) {
@@ -351,16 +355,19 @@ function touchLSCache(keys) {
     function callback(error, response, body) {
         if (!error && response.statusCode == 200) {
             if (response.statusCode == 401) {
-                console.log("The API Access Token isn't valid for "+apiHost+". Please check that your Access Token is correct and not expired.");
+                console.log("The API Access Token isn't valid for " + apiHost + ". Please check that your Access Token is correct and not expired.");
             }
             if (response.statusCode != 200) {
                 console.log("Could not connect to LemonStand! Didn't get 200!");
+                console.details('cache', 'Cache update failed with', response.statusCode, response);
             } else {
                 // Cache successfully updated.
+                console.details('cache', 'Cache updated');
             }
         }
     }
 
+    console.details('cache', 'Updating cache', apiHost);
     request(options, callback);
 }
 
@@ -448,6 +455,7 @@ function getIdentity(apiKey, cb) {
     };
 
     function callback(error, response, body) {
+        console.details('store', 'Connected with code', response.statusCode);
         if (!error && response.statusCode == 200) {
             var body = JSON.parse(body);
             cb(body.data);
@@ -455,6 +463,7 @@ function getIdentity(apiKey, cb) {
             if (error) {
                 console.log("Could not connect to your store:");
                 console.log(error.message);
+                console.details('store', 'Connection failed with', response, body);
             }
             if (response) {
                 if (response.statusCode == 401) {
@@ -476,6 +485,8 @@ function getS3ListOfObjects(identityData) {
     bucket = identityData.bucket;
     store = identityData.store;
     prefix = store + '/themes/';
+
+    console.details('store', 'Getting store file listing for', store, theme);
 
     AWS.config.update({
         accessKeyId: identityData.key,
@@ -513,8 +524,8 @@ function loadPrivateHelpers() {
     console.details = function(type) {
         if (verbose) {
             var args = Array.prototype.slice.call(arguments, 1);
-            var details = args.join(', ');
-            console.log(type.toUpperCase(), ':', details);
+            var details = args.join(' ');
+            console.log(type.toUpperCase() + ':', details);
         }
     }
 }
@@ -526,6 +537,7 @@ function processGlobalCommandLine() {
 
     if (process.argv.includes('--verbose')) {
         verbose = true;
+        request.debug = true;
         console.log('Detailed logging is ON');
     }
 }
