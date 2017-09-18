@@ -59,6 +59,6 @@ $ 🍋  lemonsync
 ## Additional options
 
 | Option | Description |
-| ====== | =========== |
-| --version  | Show the current tool version                 |
+| ------ | ----------- |
+| `--version` | Show the current tool version                 |
 
