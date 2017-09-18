@@ -537,7 +537,11 @@ function processGlobalCommandLine() {
 
     if (process.argv.includes('--verbose')) {
         verbose = true;
-        request.debug = true;
         console.log('Detailed logging is ON');
+    }
+
+    if (process.argv.includes('--network-logging')) {
+        request.debug = true;
+        console.log('Network logging is ON');
     }
 }
