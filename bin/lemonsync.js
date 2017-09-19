@@ -278,12 +278,14 @@ function uploadLocalToStore(changedFiles) {
 
     for (var key in changedFiles) {
         var cacheKey = key.replace(prefix + theme + '/', '');
-        var size = changedFiles[key].length / 1024 / 1024;
-
-        fileSizeMB = size.toFixed(2);
+        var fileSizeMB = changedFiles[key].length / 1024 / 1024;
 
         console.log('- ' + cacheKey.replace(prefix, ''));
-        console.details('remote', 'Preparing changes for', cacheKey, '(', count, '/', totalChanges, ')', fileSizeMB, 'MB');
+
+        console.details('remote', 'Preparing changes for',
+            cacheKey,
+            '(', count, '/', totalChanges, ')',
+            fileSizeMB.toFixed(2), 'MB');
 
         if (!changedFiles.hasOwnProperty(key)) {
             continue; // skip non-file object props
