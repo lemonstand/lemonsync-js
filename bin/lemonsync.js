@@ -13,6 +13,7 @@ var AWS      = require('aws-sdk'),
 var defaults = {
     scanTimeout: 30,
     s3Timeout: 300000, /* 5 minutes */
+    maximumFileCount: 10000,
     version: '1.0.11'
 };
 
@@ -495,7 +496,7 @@ function getIdentity(apiKey, cb) {
             }
             if (response) {
                 if (response.statusCode == 401) {
-                    console.log("The API Access Token isn't valid for "+apiHost+". Please check that your Access Token is correct and not expired.");
+                    console.log("The API Access Token isn't valid for " + apiHost + ". Please check that your Access Token is correct and not expired.");
                 } else if (response.statusCode != 200) {
                     console.log("Could not connect to the LemonStand store.");
                 }
@@ -531,7 +532,7 @@ function getS3ListOfObjects(identityData) {
     var listObjectsV2Params = {
         Bucket: identityData.bucket,
         Prefix: prefix + theme + '/',
-        MaxKeys: 10000
+        MaxKeys: defaults.maximumFileCount
     };
 
     s3.listObjectsV2(listObjectsV2Params, function(err, objects) {
