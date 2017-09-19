@@ -308,7 +308,7 @@ function uploadLocalToStore(changedFiles) {
         count++;
     }
 
-    console.details('remote', 'Updating', uploadList.length, '/', totalChanges, 'files');
+    console.details('remote', 'Updating', uploadList.length, '/', totalChanges, 'files ...');
 
     // Upload files in a batch + tickle cache and continue watching
 
