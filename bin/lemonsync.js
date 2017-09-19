@@ -256,48 +256,69 @@ function overwriteLocalWithStore(changedFiles) {
 }
 
 function uploadLocalToStore(changedFiles) {
-    var putObjectPromises = [];
+    var uploadList = [];
     var cacheKeys = [];
-    console.log('\r\nOverwriting store\'s theme...\r\n');
+    var totalChanges = Object.keys(changedFiles).length;
     var count = 0;
+
+    /** S3 file completion helper */
+    var onFilePut = function(err, data) {
+        console.details('remote', err, data, this);
+    }
+
+    console.log('\r\nOverwriting store\'s theme...\r\n');
 
     for (var key in changedFiles) {
         var cacheKey = key.replace(prefix + theme + '/', '');
 
-        console.details('remote', 'Pushing change for', key);
+        console.log('- ' + cacheKey.replace(prefix, ''));
+        console.details('remote', 'Preparing changes for', cacheKey, '(', count, '/', totalChanges, ')');
 
-        cacheKeys.push(cacheKey);
-        if (changedFiles.hasOwnProperty(key)) {
-            var params = {
-                Bucket: bucket,
-                Key: key,
-                Body: changedFiles[key]
-            };
+        /** Queue up upload and cache list for sync with server */
 
-            var putObjectPromise = s3.putObject(params).promise();
-            console.details('remote', 'Updated file', key);
-
-            count++;
-            putObjectPromises.push(putObjectPromise);
-            if (putObjectPromises.length == Object.keys(changedFiles).length) {
-                console.details('remote', 'Planning to update cache for', putObjectPromises.length, 'files');
-                Promise.all(putObjectPromises).then(function(dataArray) {
-                    /**
-                     * Since this is overwriting store files, we need to update the cache
-                     */
-                    touchLSCache(cacheKeys);
-                    cacheKeys.forEach(function(value) {
-                        console.log('- ' + value.replace(prefix, ''));
-                        console.details('remote', 'Updated cache', value);
-                    })
-                    watchForChanges();
-                }).catch(function(err) {
-                    console.log('Error uploading to store theme: ' + err.message);
-                });
-
-            }
+        if (!changedFiles.hasOwnProperty(key)) {
+            continue; // skip non-file object props
         }
+
+
+        // track cache entry
+        cacheKeys.push(cacheKey);
+
+        // track upload
+        var params = {
+            Bucket: bucket,
+            Key: key,
+            Body: changedFiles[key]
+        };
+
+        var themeFileUpdater = s3.putObject(params, onFilePut)
+                                    .promise();
+
+        uploadList.push(themeFileUpdater);
+        count++;
     }
+
+    console.details('remote', 'Preparing to update ', uploadList.length, '/', totalChanges, 'files');
+
+    // Upload files in a batch + tickle cache and continue watching
+
+    Promise
+        .all(uploadList)
+        .then(function (dataArray) {
+
+            console.details('remote', 'Update complete');
+
+            /**
+             * Since this is overwriting store files, we need to update the cache
+             */
+            touchLSCache(cacheKeys);
+
+            watchForChanges();
+
+        }).catch(function (err, data) {
+            console.log('Error uploading to store theme: ' + err.message);
+            console.details('remote', 'S3 upload failed with', err, data);
+        });
 }
 
 function watchForChanges() {
