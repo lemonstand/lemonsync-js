@@ -259,27 +259,33 @@ function uploadLocalToStore(changedFiles) {
     var uploadList = [];
     var cacheKeys = [];
     var totalChanges = Object.keys(changedFiles).length;
-    var count = 0;
+    var count = 1;
 
     /** S3 file completion helper */
     var onFilePut = function(err, data) {
-        console.details('remote', err, data, this);
+        if (err) {
+            console.details('remote', 'Update failed', err, err.httpResponse, this.err.httpResponse);
+        } else {
+            console.details('remote', 'Update OK');
+        }
     }
 
     console.log('\r\nOverwriting store\'s theme...\r\n');
 
+    /** Queue up upload and cache list for sync with server */
+
     for (var key in changedFiles) {
         var cacheKey = key.replace(prefix + theme + '/', '');
+        var size = changedFiles[key].length / 1024 / 1024;
+
+        fileSizeMB = size.toFixed(2);
 
         console.log('- ' + cacheKey.replace(prefix, ''));
-        console.details('remote', 'Preparing changes for', cacheKey, '(', count, '/', totalChanges, ')');
-
-        /** Queue up upload and cache list for sync with server */
+        console.details('remote', 'Preparing changes for', cacheKey, '(', count, '/', totalChanges, ')', fileSizeMB, 'MB');
 
         if (!changedFiles.hasOwnProperty(key)) {
             continue; // skip non-file object props
         }
-
 
         // track cache entry
         cacheKeys.push(cacheKey);
@@ -298,7 +304,7 @@ function uploadLocalToStore(changedFiles) {
         count++;
     }
 
-    console.details('remote', 'Preparing to update ', uploadList.length, '/', totalChanges, 'files');
+    console.details('remote', 'Updating', uploadList.length, '/', totalChanges, 'files');
 
     // Upload files in a batch + tickle cache and continue watching
 
@@ -513,7 +519,10 @@ function getS3ListOfObjects(identityData) {
         accessKeyId: identityData.key,
         secretAccessKey: identityData.secret,
         sessionToken: identityData.token,
-        region: 'us-east-1'
+        region: 'us-east-1',
+        httpOptions: {
+            timeout: 300000 /* increase timeout for larger files */
+        }
     });
 
     s3 = new AWS.S3();
