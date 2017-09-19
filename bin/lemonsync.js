@@ -268,9 +268,7 @@ function uploadLocalToStore(changedFiles) {
     /** S3 file completion helper */
     var onFilePut = function(err, data) {
         if (err) {
-            var r1 = err.httpResponse;
-            var r2 = this.error.httpResponse;
-            console.details('remote', 'Update failed', err, r1, r2);
+            console.details('remote', 'Update failed', err, err.headers);
         } else {
             console.details('remote', 'Update OK for', data.headers);
         }
