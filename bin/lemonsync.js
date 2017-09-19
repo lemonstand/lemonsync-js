@@ -12,6 +12,7 @@ var AWS      = require('aws-sdk'),
 /** Some CLI defaults */
 var defaults = {
     scanTimeout: 30,
+    s3Timeout: 300000, /* 5 minutes */
     version: '1.0.11'
 };
 
@@ -264,9 +265,9 @@ function uploadLocalToStore(changedFiles) {
     /** S3 file completion helper */
     var onFilePut = function(err, data) {
         if (err) {
-            console.details('remote', 'Update failed', err, err.httpResponse, this.err.httpResponse);
+            console.details('remote', 'Update failed', err, data.headers, err.httpResponse, this.err.httpResponse);
         } else {
-            console.details('remote', 'Update OK');
+            console.details('remote', 'Update OK for', data.headers);
         }
     }
 
@@ -521,7 +522,7 @@ function getS3ListOfObjects(identityData) {
         sessionToken: identityData.token,
         region: 'us-east-1',
         httpOptions: {
-            timeout: 300000 /* increase timeout for larger files */
+            timeout: defaults.s3Timeout
         }
     });
 
