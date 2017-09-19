@@ -17,7 +17,7 @@ var defaults = {
     version: '1.0.11'
 };
 
-defaults.s3Timeout = 50000; // < 1 minute
+// defaults.s3Timeout = 50000; // < 1 minute (debugging)
 
 /**
  * S3 security variables
@@ -268,7 +268,7 @@ function uploadLocalToStore(changedFiles) {
     /** S3 file completion helper */
     var onFilePut = function(err, data) {
         if (err) {
-            console.details('remote', 'Update failed', err, err.headers);
+            console.details('remote', 'Update failed', err, this.headers, data.headers);
         } else {
             console.details('remote', 'Update OK for', data.headers);
         }
