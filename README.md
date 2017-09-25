@@ -41,7 +41,7 @@ _Note: You may need to start your terminal application after uninstalling previo
 ```
 {
   "theme_code": "zest",
-  "store": "http://yourstore.lemonstand.com",
+  "store": "https://yourstore.lemonstand.com",
   "api_token": "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678910",
   "ignore_patterns": [ "*.tmp", ".git", "lemonsync.json" ]
 }
