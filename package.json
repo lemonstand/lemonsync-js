@@ -11,15 +11,14 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tomcornall/lemonsync-js.git"
+    "url": "git+https://github.com/lemonstand/lemonsync-js.git"
   },
   "bugs": {
-    "url": "https://github.com/tomcornall/lemonsync-js/issues"
+    "url": "https://github.com/lemonstand/lemonsync-js/issues"
   },
-  "homepage": "https://github.com/tomcornall/lemonsync-js#readme",
+  "homepage": "https://github.com/lemonstand/lemonsync-js#readme",
   "dependencies": {
     "aws-sdk": "^2.117.0",
-    "commander": "^2.11.0",
     "fs": "0.0.1-security",
     "ignore": "^3.3.5",
     "minimatch": "^3.0.4",

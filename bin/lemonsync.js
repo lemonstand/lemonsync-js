@@ -9,6 +9,14 @@ var AWS      = require('aws-sdk'),
     ignore = require("ignore"),
     rimraf = require("rimraf");
 
+/** Some CLI defaults */
+var defaults = {
+    scanTimeout: 30,
+    s3Timeout: 300000, /* 5 minutes */
+    maximumFileCount: 10000,
+    version: '1.0.11'
+};
+
 /**
  * S3 security variables
  */
@@ -24,8 +32,12 @@ var watchDir = process.cwd(),
     storeName,
     apiKey,
     localConfig = 'lemonsync.json',
-    ign;
+    ign,
+    verbose = false;
 
+
+processGlobalCommandLine();
+loadPrivateHelpers();
 readConfig();
 
 function readConfig() {
@@ -66,8 +78,10 @@ function readConfig() {
 }
 
 function emptyLocalFolder(path) {
-    fs.readdirSync(path).forEach(function(file,index){
+    console.details('DELETE', 'Clearing local folder before syncing down');
+    fs.readdirSync(path).forEach(function(file, index) {
         if (file == 'lemonsync.json') {
+            console.details('DELETE', 'Skipping LemonSync configuration');
             return;
         }
         var curPath = path + pathModule.sep + file;
@@ -105,12 +119,10 @@ function compareS3FilesWithLocal(s3Files, prefix) {
 
     localFilePaths.forEach( function( localFilePath, index ) {
 
-
         localFileBody = fs.readFileSync(localFilePath, 'utf8');
         count++;
 
         shortLocalPath = localFilePath.replace(watchDir, theme);
-
 
         if (shortLocalPath in s3Files) {
             localPathMatchCount++;
@@ -226,7 +238,7 @@ function overwriteLocalWithStore(changedFiles) {
                 delete changedFiles[key];
             }
         }
-    }        
+    }
 
     for (var key in changedFiles) {
         if (changedFiles.hasOwnProperty(key)) {
@@ -236,59 +248,94 @@ function overwriteLocalWithStore(changedFiles) {
                 fs.writeFileSync(key, changedFiles[key]);
                 console.log('- ' + key);
             } catch (err) {
-                console.log('Error overwriting local file: ' + err.message);
+                console.log('Error overwriting local file (' + key + '): ' + err.message);
             }
         }
     }
 
     // Watch for changes can catch these local file writes if we run it instantly
-    setTimeout(watchForChanges, 30);
+    setTimeout(watchForChanges, defaults.scanTimeout);
 }
 
 function uploadLocalToStore(changedFiles) {
-    var putObjectPromises = [];
+    var uploadList = [];
     var cacheKeys = [];
+    var totalChanges = Object.keys(changedFiles).length;
+    var count = 1;
+
+    /** S3 file completion helper */
+    var onFileUpdate = function(err, data) {
+        if (err) {
+            console.details('remote', 'Update failed', err);
+        } else {
+            console.details('remote', 'Update OK for', data.Location);
+        }
+    }
+
     console.log('\r\nOverwriting store\'s theme...\r\n');
-    var count = 0;
+
+    /** Queue up upload and cache list for sync with server */
 
     for (var key in changedFiles) {
         var cacheKey = key.replace(prefix + theme + '/', '');
+        var fileSizeMB = changedFiles[key].length / 1024 / 1024;
 
-        cacheKeys.push(cacheKey);
-        if (changedFiles.hasOwnProperty(key)) {
-            var params = {
-                Bucket: bucket,
-                Key: key,
-                Body: changedFiles[key]
-            };
+        console.log('- ' + cacheKey.replace(prefix, ''));
 
-            var putObjectPromise = s3.putObject(params).promise();
-            count++;
-            putObjectPromises.push(putObjectPromise);
-            if (putObjectPromises.length == Object.keys(changedFiles).length) {
-                Promise.all(putObjectPromises).then(function(dataArray) {                    
-                    /**
-                     * Since this is overwriting store files, we need to update the cache
-                     */
-                    touchLSCache(cacheKeys);
-                    cacheKeys.forEach(function(value) {
-                        console.log('- ' + value.replace(prefix, ''));
-                    })
-                    watchForChanges();
-                }).catch(function(err) {
-                    console.log('Error uploading to store theme: ' + err.message);
-                });
-                
-            }
+        console.details('remote', 'Preparing changes for',
+            cacheKey,
+            '(', count, '/', totalChanges, ')',
+            fileSizeMB.toFixed(2), 'MB');
+
+        if (!changedFiles.hasOwnProperty(key)) {
+            continue; // skip non-file object props
         }
+
+        // track cache entry
+        cacheKeys.push(cacheKey);
+
+        // track upload
+        var params = {
+            Bucket: bucket,
+            Key: key,
+            Body: changedFiles[key]
+        };
+
+        var themeFileUpdater = s3.upload(params, onFileUpdate)
+                                    .promise();
+
+        uploadList.push(themeFileUpdater);
+        count++;
     }
+
+    console.details('remote', 'Updating', uploadList.length, '/', totalChanges, 'files ...');
+
+    // Upload files in a batch + tickle cache and continue watching
+
+    Promise
+        .all(uploadList)
+        .then(function (dataArray) {
+
+            console.details('remote', 'Update complete');
+
+            /**
+             * Since this is overwriting store files, we need to update the cache
+             */
+            touchLSCache(cacheKeys);
+
+            watchForChanges();
+
+        }).catch(function (err, data) {
+            console.log('Error uploading to store theme: ' + err.message);
+            console.details('remote', 'S3 upload failed with', err, data);
+        });
 }
 
 function watchForChanges() {
     console.log('\r\n🍋  Watching for changes... 🍋\r\n');
 
     fs.watch(watchDir, {recursive: true}, function(eventType, filename) {
-        if (filename) {            
+        if (filename) {
             localFilePath = watchDir + '/' + filename;
             if (ign.ignores(localFilePath)) {
                 return;
@@ -310,7 +357,7 @@ function watchForChanges() {
             putObjectPromise.then(function(data) {
                 console.log(`- ${filename} touched`);
                 var cacheKeys = [filename];
-                touchLSCache(cacheKeys);               
+                touchLSCache(cacheKeys);
             }).catch(function(err) {
                 console.log(err, err.stack);
             });
@@ -339,16 +386,19 @@ function touchLSCache(keys) {
     function callback(error, response, body) {
         if (!error && response.statusCode == 200) {
             if (response.statusCode == 401) {
-                console.log("The API Access Token isn't valid for "+apiHost+". Please check that your Access Token is correct and not expired.");
+                console.log("The API Access Token isn't valid for " + apiHost + ". Please check that your Access Token is correct and not expired.");
             }
             if (response.statusCode != 200) {
                 console.log("Could not connect to LemonStand! Didn't get 200!");
+                console.details('cache', 'Cache update failed with', response.statusCode, response);
             } else {
                 // Cache successfully updated.
+                console.details('cache', 'Cache updated');
             }
         }
     }
 
+    console.details('cache', 'Updating cache', apiHost);
     request(options, callback);
 }
 
@@ -436,6 +486,7 @@ function getIdentity(apiKey, cb) {
     };
 
     function callback(error, response, body) {
+        console.details('store', 'Connected with code', response.statusCode);
         if (!error && response.statusCode == 200) {
             var body = JSON.parse(body);
             cb(body.data);
@@ -443,10 +494,11 @@ function getIdentity(apiKey, cb) {
             if (error) {
                 console.log("Could not connect to your store:");
                 console.log(error.message);
+                console.details('store', 'Connection failed with', response, body);
             }
             if (response) {
                 if (response.statusCode == 401) {
-                    console.log("The API Access Token isn't valid for "+apiHost+". Please check that your Access Token is correct and not expired.");
+                    console.log("The API Access Token isn't valid for " + apiHost + ". Please check that your Access Token is correct and not expired.");
                 } else if (response.statusCode != 200) {
                     console.log("Could not connect to the LemonStand store.");
                 }
@@ -465,11 +517,16 @@ function getS3ListOfObjects(identityData) {
     store = identityData.store;
     prefix = store + '/themes/';
 
+    console.details('store', 'Getting store file listing for', store, theme);
+
     AWS.config.update({
         accessKeyId: identityData.key,
         secretAccessKey: identityData.secret,
         sessionToken: identityData.token,
-        region: 'us-east-1'
+        region: 'us-east-1',
+        httpOptions: {
+            timeout: defaults.s3Timeout
+        }
     });
 
     s3 = new AWS.S3();
@@ -477,7 +534,7 @@ function getS3ListOfObjects(identityData) {
     var listObjectsV2Params = {
         Bucket: identityData.bucket,
         Prefix: prefix + theme + '/',
-        MaxKeys: 10000
+        MaxKeys: defaults.maximumFileCount
     };
 
     s3.listObjectsV2(listObjectsV2Params, function(err, objects) {
@@ -491,4 +548,34 @@ function getS3ListOfObjects(identityData) {
             getS3Objects(objects, prefix);
         }
     });
+}
+
+// Register private helpers
+
+function loadPrivateHelpers() {
+
+    // Verbose trace helper
+    console.details = function(type) {
+        if (verbose) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            var details = args.join(' ');
+            console.log(type.toUpperCase() + ':', details);
+        }
+    }
+}
+
+function processGlobalCommandLine() {
+    if (process.argv.includes('--version')) {
+        console.log('Version:', defaults.version);
+    }
+
+    if (process.argv.includes('--verbose')) {
+        verbose = true;
+        console.log('Detailed logging is ON');
+    }
+
+    if (process.argv.includes('--network-logging')) {
+        request.debug = true;
+        console.log('Network logging is ON');
+    }
 }
