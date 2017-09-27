@@ -473,7 +473,7 @@ function listFullFilePaths(dir, filelist) {
  * Get s3 identity data from store API /identity/s3 endpoint
  */
 function getIdentity(apiKey, cb) {
-    console.log('🍋  Connecting to your store... 🍋\r\n');
+    console.log('🍋  Connecting to your store (' + storeName + ') ... 🍋\r\n');
     var apiHost = storeName + '/api/v2/identity/s3';
 
     var options = {
