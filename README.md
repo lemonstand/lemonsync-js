@@ -58,8 +58,8 @@ $ 🍋  lemonsync
 
 ## Additional options
 
-| Option | Description |
-| ------ | ----------- |
+| Command Line Option      | Description |
+| ------------------------ | ----------- |
 | `--reset=local` | Overwrite local theme with store version |
 | `--version` | Show the current version of `lemonsync` |
 | `--verbose` | Show additional logging detail |
