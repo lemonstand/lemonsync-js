@@ -71,11 +71,17 @@ Example: [lemonsync.json](https://raw.githubusercontent.com/tomcornall/lemonsync
 
 ## Additional options
 
-| Command Line Option      | Description |
-| ------------------------ | ----------- |
-| `--reset=local` | Overwrite local theme with store version |
+| Option      | Description |
+| ----------- | ----------- |
 | `--version` | Show the current version of `lemonsync` |
 | `--verbose` | Show additional logging detail |
+
+
+### Advanced options
+
+| Option      | Description |
+| ----------- | ----------- |
+| `--reset=local` | Overwrite local theme with store version |
 | `--network-logging` | Show detail of each network request |
 | `--reset=remote` | Overwrite store theme with local version <br>  **Warning: this option will overwrite your store's remote theme and can delete your remote theme if used incorrectly.** |
 
