@@ -1,4 +1,4 @@
-# Local LemonStand development made easy: watch any synchronize your store theme
+# Local LemonStand theme development made easy
 
 
 LemonSync-js is a tool for syncing local theme files with a live [LemonStand](https://lemonstand.com/) store. It runs along side your development tools, watching for local changes, and magically updating your store theme. It's built using JavaScript and Node (as an `npm` module). It runs on Mac, Windows, and Linux.
