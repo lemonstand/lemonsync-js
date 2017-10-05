@@ -45,7 +45,7 @@ $ 🍋  lemonsync
 
 ### Example `lemonsync.json` configuration
 
- The LemonSync-js configuration is a JSON file should contain the following:
+ The LemonSync-js configuration is a JSON file that should contain the following:
 
 ```
 {
