@@ -40,23 +40,28 @@ _Note: You may need to start your terminal application after uninstalling previo
 ## Usage
 
 1. Download a theme from your [LemonStand](https://lemonstand.com/) store.
-2. Create a JSON file, `lemonsync.json` and place it in your theme folder.
-3. From within the theme folder, run:
+2. Create a new configuration file, name it `lemonsync.json`, and place it in your theme folder (see example below).
+3. Now you can run LemonSync from within the theme folder.
+
+To run LemonSync:
 
 
 ```
 🍋 lemonsync
 ```
 
+That's it!
+
+
 ### Example `lemonsync.json` configuration
 
- The LemonSync-js configuration is a JSON file that should contain the following:
+Your LemonSync-js configuration is a JSON file that should contain the following:
 
 ```
 {
   "theme_code": "zest",
   "store": "https://yourstore.lemonstand.com",
-  "api_token": "ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678910",
+  "api_token": "<API token from your store>",
   "ignore_patterns": [ "*.tmp", ".git", "lemonsync.json" ]
 }
 ```
