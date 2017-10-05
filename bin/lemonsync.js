@@ -14,7 +14,7 @@ var defaults = {
     scanTimeout: 30,
     s3Timeout: 300000, /* 5 minutes */
     maximumFileCount: 10000,
-    version: '1.0.12'
+    version: '1.0.14'
 };
 
 /**
