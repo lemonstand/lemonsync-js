@@ -10,13 +10,13 @@ To install LemonSync, first install [Node.js](https://nodejs.org/en/). NodeJS in
 To confirm that you have `npm` installed you can run this command in your terminal:
 
 ```
-$ 🍋 npm -v
+🍋 npm -v
 ```
 
 With `npm` you can now install LemonSyncJS:
 
 ```
-$ 🍋 [sudo] npm install lemonsync -g
+🍋 [sudo] npm install lemonsync -g
 ```
 
 ### Uninstalling previous versions of LemonSync
@@ -24,13 +24,13 @@ $ 🍋 [sudo] npm install lemonsync -g
 If you happen have the old Python version of LemonSync installed, you will need to uninstall it as well:
 
 ```
-$ 🍋 sudo pip uninstall lemonsync
+🍋 sudo pip uninstall lemonsync
 ```
 
 You can verify that you have LemonSync installed properly by running the following:
 
 ```
-$ 🍋 which lemonsync
+🍋 which lemonsync
 /Users/<youruser>/.npm/bin/lemonsync
 ```
 
@@ -45,7 +45,7 @@ _Note: You may need to start your terminal application after uninstalling previo
 
 
 ```
-$ 🍋  lemonsync
+🍋 lemonsync
 ```
 
 ### Example `lemonsync.json` configuration
