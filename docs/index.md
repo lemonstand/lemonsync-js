@@ -35,8 +35,17 @@ _Note: You may need to start your terminal application after uninstalling previo
 ## Usage
 
 1. Download a theme from your [LemonStand](https://lemonstand.com/) store.
+2. Create a JSON file, `lemonsync.json` and place it in your theme folder.
+3. From within the theme folder, run:
 
-2. Create a JSON file, **lemonsync.json** and place it in your theme folder. This JSON should contain the following data:
+
+```
+$ 🍋  lemonsync
+```
+
+### Example `lemonsync.json` configuration
+
+ The LemonSync-js configuration is a JSON file should contain the following:
 
 ```
 {
@@ -47,13 +56,7 @@ _Note: You may need to start your terminal application after uninstalling previo
 }
 ```
 
-[lemonsync.json](https://raw.githubusercontent.com/tomcornall/lemonsync-js/master/lemonsync.json)
-
-3. From within the theme folder, run:
-
-```
-$ 🍋  lemonsync
-```
+Example: [lemonsync.json](https://raw.githubusercontent.com/tomcornall/lemonsync-js/master/lemonsync.json)
 
 
 ## Additional options
