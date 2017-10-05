@@ -1,22 +1,27 @@
-# LemonSync
-A tool for syncing local theme files with a live [LemonStand](https://lemonstand.com/) store.
+# Local LemonStand development made easy: watch any synchronize your store theme
+
+
+LemonSync-js is a tool for syncing local theme files with a live [LemonStand](https://lemonstand.com/) store. It runs along side your development tools, watching for local changes, and magically updating your store theme. It's built using JavaScript and Node (as an `npm` module). It runs on Mac, Windows, and Linux.
 
 ## Installation
 
-To install LemonSync, first install [Node.js](https://nodejs.org/en/). This comes with npm, the package manager for node.js applications. To confirm that you have npm installed you can run this command in your terminal:
+To install LemonSync, first install [Node.js](https://nodejs.org/en/). NodeJS includes `npm`, the package manager for NodeJS applications.
+
+To confirm that you have `npm` installed you can run this command in your terminal:
 
 ```
 $ 🍋 npm -v
 ```
 
-With npm you can now install LemonSync:
+With `npm` you can now install LemonSyncJS:
+
 ```
 $ 🍋 [sudo] npm install lemonsync -g
 ```
 
 ### Uninstalling previous versions of LemonSync
 
-If you have the Python version of LemonSync installed, you will need to uninstall it:
+If you happen have the old Python version of LemonSync installed, you will need to uninstall it as well:
 
 ```
 $ 🍋 sudo pip uninstall lemonsync
