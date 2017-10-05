@@ -16,8 +16,10 @@ To confirm that you have `npm` installed you can run this command in your termin
 With `npm` you can now install LemonSyncJS:
 
 ```bash
-🍋 [sudo] npm install lemonsync -g
+🍋  npm install lemonsync -g
 ```
+
+Depending on how you have installed `npm`, you may need to run the `-g` global install using `sudo`.
 
 ### Uninstalling previous versions of LemonSync
 
