@@ -15,7 +15,7 @@ To confirm that you have `npm` installed you can run this command in your termin
 
 With `npm` you can now install LemonSyncJS:
 
-```
+```bash
 🍋 [sudo] npm install lemonsync -g
 ```
 
@@ -23,13 +23,13 @@ With `npm` you can now install LemonSyncJS:
 
 If you happen have the old Python version of LemonSync installed, you will need to uninstall it as well:
 
-```
+```bash
 🍋 sudo pip uninstall lemonsync
 ```
 
 You can verify that you have LemonSync installed properly by running the following:
 
-```
+```bash
 🍋 which lemonsync
 /Users/<youruser>/.npm/bin/lemonsync
 ```
@@ -46,7 +46,7 @@ _Note: You may need to start your terminal application after uninstalling previo
 To run LemonSync:
 
 
-```
+```bash
 🍋 lemonsync
 ```
 
@@ -57,7 +57,7 @@ That's it!
 
 Your LemonSync-js configuration is a JSON file that should contain the following:
 
-```
+```json
 {
   "theme_code": "zest",
   "store": "https://yourstore.lemonstand.com",
