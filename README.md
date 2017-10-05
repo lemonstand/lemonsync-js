@@ -4,4 +4,4 @@ A tool for syncing local theme files with a live [LemonStand](https://lemonstand
 
 ## Installation
 
-See the [LemonSync installation guide](https://lemonstand.github.io/lemonsync-js/) for details on how to get started with LemonSync.
+See the [LemonSync installation guide](http://lemonsync-js.lemonstand.com) for details on how to get started with LemonSync.
