@@ -45,7 +45,6 @@ _Note: You may need to start your terminal application after uninstalling previo
 
 To run LemonSync:
 
-
 ```bash
 🍋 lemonsync
 ```
@@ -75,14 +74,24 @@ Example: [lemonsync.json](https://raw.githubusercontent.com/tomcornall/lemonsync
 | ----------- | ----------- |
 | `--version` | Show the current version of `lemonsync` |
 | `--verbose` | Show additional logging detail |
+| `--network-logging` | Show detail of each network request |
 
 
 ### Advanced options
 
-| Option      | Description |
-| ----------- | ----------- |
-| `--reset=local` | Overwrite local theme with store version |
-| `--network-logging` | Show detail of each network request |
-| `--reset=remote` | Overwrite store theme with local version <br>  **Warning: this option will overwrite your store's remote theme and can delete your remote theme if used incorrectly.** |
+| Option      | Parameter   | Description |
+| ----------- | ----------- | ----------- |
+| `--reset` | `local` | Overwrite local theme with REMOTE store version |
+| `--reset` | `remote` | Overwrite store theme with LOCAL version |
+
+```bash
+# Reset local theme files with your store's theme
+🍋  lemonsync --reset=local
+
+# Reset and overwrite your remote theme with your local
+🍋  lemonsync --reset=remote
+```
+
+**Warning: using the `--reset=remote` option will overwrite your store's remote theme and can delete your remote theme if used incorrectly.**
 
 
