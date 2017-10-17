@@ -7,7 +7,8 @@ var AWS      = require('aws-sdk'),
     mkdirp   = require('mkdirp'),
     pathModule = require('path'),
     ignore = require("ignore"),
-    rimraf = require("rimraf");
+    rimraf = require("rimraf"),
+    mime = require('mime');
 
 /** Some CLI defaults */
 var defaults = {
@@ -298,7 +299,8 @@ function uploadLocalToStore(changedFiles) {
         var params = {
             Bucket: bucket,
             Key: key,
-            Body: changedFiles[key]
+            Body: changedFiles[key],
+            ContentType: mime.lookup(key)
         };
 
         var themeFileUpdater = s3.upload(params, onFileUpdate)
