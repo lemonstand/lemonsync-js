@@ -81,19 +81,6 @@ Example: [lemonsync.json](https://raw.githubusercontent.com/tomcornall/lemonsync
 
 ### Advanced options
 
-| Option      | Parameter   | Description |
-| ----------- | ----------- | ----------- |
-| `--reset` | `local` | Overwrite local theme with REMOTE store version |
-| `--reset` | `remote` | Overwrite store theme with LOCAL version |
-
-```bash
-# Reset local theme files with your store's theme
-🍋  lemonsync --reset=local
-
-# Reset and overwrite your remote theme with your local
-🍋  lemonsync --reset=remote
-```
-
-**Warning: using the `--reset=remote` option will overwrite your store's remote theme and can delete your remote theme if used incorrectly.**
+*Note: `reset` options are currently unavailable.*
 
 
