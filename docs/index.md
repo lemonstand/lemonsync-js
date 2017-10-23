@@ -67,7 +67,9 @@ Your LemonSync-js configuration is a JSON file that should contain the following
 }
 ```
 
-Example: [lemonsync.json](https://raw.githubusercontent.com/tomcornall/lemonsync-js/master/lemonsync.json)
+_Note: If you have set up a custom domain (e.g. yourstore.com) for your store, your configuration file should use that for the `store` URL instead of yourstore.lemonstand.com domain._
+
+Example: [lemonsync.json](https://raw.githubusercontent.com/lemonstand/lemonsync-js/master/examples/lemonsync.json)
 
 
 ## Additional options
