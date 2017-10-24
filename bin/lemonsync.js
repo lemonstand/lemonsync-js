@@ -120,7 +120,7 @@ function compareS3FilesWithLocal(s3Files, prefix) {
 
     localFilePaths.forEach( function( localFilePath, index ) {
 
-        localFileBody = fs.readFileSync(localFilePath, 'utf8');
+        localFileBody = fs.readFileSync(localFilePath);
         count++;
 
         shortLocalPath = localFilePath.replace(watchDir, theme);
@@ -128,7 +128,7 @@ function compareS3FilesWithLocal(s3Files, prefix) {
         if (shortLocalPath in s3Files) {
             localPathMatchCount++;
             // Local file exists in s3, compare bodies:
-            if (s3Files[shortLocalPath] !== localFileBody) {
+            if (!s3Files[shortLocalPath].equals(localFileBody)) {
                 // Files are different, store in array of changed files.
                 changedLocalFiles[prefix + shortLocalPath] = localFileBody;
                 changedRemoteFiles[localFilePath] = s3Files[shortLocalPath];
@@ -435,22 +435,18 @@ function getS3Objects(s3ObjectList, prefix) {
                 console.log(err, err.stack);
             });
         } else {
-            if (s3FileObject.Size > 0) {
-                var getObjectPromise = s3.getObject(params).promise();
-                getObjectPromise.then(function(data) {
-                    s3FileBody = data.Body.toString('utf-8');
-                    s3Files[s3Path] = s3FileBody;
-                    count++;
-                    if (count === s3ObjectList.KeyCount) {
-                        // Done getting s3 objects
-                        compareS3FilesWithLocal(s3Files, prefix);
-                    }
-                }).catch(function(err) {
-                    console.log(err, err.stack);
-                });
-            } else {
+            var getObjectPromise = s3.getObject(params).promise();
+            getObjectPromise.then(function(data) {
+                s3FileBody = data.Body;
+                s3Files[s3Path] = s3FileBody;
                 count++;
-            }
+                if (count === s3ObjectList.KeyCount) {
+                    // Done getting s3 objects
+                    compareS3FilesWithLocal(s3Files, prefix);
+                }
+            }).catch(function(err) {
+                console.log(err, err.stack);
+            });
         }
     });
 }
