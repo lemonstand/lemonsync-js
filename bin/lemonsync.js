@@ -108,10 +108,10 @@ function compareS3FilesWithLocal(s3Files, prefix) {
 
     var localFilePaths = listFullFilePaths(watchDir);
 
-    // if (process.argv.includes('--reset=local')) {
-    //     emptyLocalFolder(watchDir);
-    //     localFilePaths = listFullFilePaths(watchDir);
-    // }
+    if (process.argv.includes('--reset=local')) {
+        emptyLocalFolder(watchDir);
+        localFilePaths = listFullFilePaths(watchDir);
+    }
 
     /**
      * Ignore file patterns
@@ -169,15 +169,15 @@ function compareS3FilesWithLocal(s3Files, prefix) {
                 Object.assign(changedLocalFiles, newLocalFiles);
                 Object.assign(changedRemoteFiles, newS3Files);
 
-                // if (process.argv.includes('--reset=local')) {
-                //     overwriteLocalWithStore(changedRemoteFiles);
-                //     return;
-                // }
+                if (process.argv.includes('--reset=local')) {
+                    overwriteLocalWithStore(changedRemoteFiles);
+                    return;
+                }
 
-                // if (process.argv.includes('--reset=remote')) {
-                //     uploadLocalToStore(changedLocalFiles);
-                //     return;
-                // }
+                if (process.argv.includes('--reset=remote')) {
+                    uploadLocalToStore(changedLocalFiles);
+                    return;
+                }
 
                 if (numberNewLocal > 0) {
                     console.log(numberNewLocal + ' new local file(s) were found.');
@@ -300,7 +300,7 @@ function uploadLocalToStore(changedFiles) {
             Bucket: bucket,
             Key: key,
             Body: changedFiles[key],
-            ContentType: mime.lookup(key)
+            ContentType: mime.getType(key)
         };
 
         var themeFileUpdater = s3.upload(params, onFileUpdate)
@@ -352,7 +352,8 @@ function watchForChanges() {
             var params = {
                 Bucket: bucket,
                 Key: key,
-                Body: localFileBody
+                Body: localFileBody,
+                ContentType: mime.getType(localFilePath)
             };
 
             var putObjectPromise = s3.putObject(params).promise();
@@ -422,18 +423,18 @@ function getS3Objects(s3ObjectList, prefix) {
             Bucket: bucket,
             Key: s3FileObject.Key
         };
-        // if (process.argv.includes('--reset=remote')) {
-        //     var deleteObjectPromise = s3.deleteObject(params).promise();
-        //     deleteObjectPromise.then(function(data) {
-        //         count++;
-        //         if (count === s3ObjectList.KeyCount) {
-        //             // Done getting s3 objects
-        //             compareS3FilesWithLocal(s3Files, prefix);
-        //         }
-        //     }).catch(function(err) {
-        //         console.log(err, err.stack);
-        //     });
-        // } else {
+        if (process.argv.includes('--reset=remote')) {
+            var deleteObjectPromise = s3.deleteObject(params).promise();
+            deleteObjectPromise.then(function(data) {
+                count++;
+                if (count === s3ObjectList.KeyCount) {
+                    // Done getting s3 objects
+                    compareS3FilesWithLocal(s3Files, prefix);
+                }
+            }).catch(function(err) {
+                console.log(err, err.stack);
+            });
+        } else {
             if (s3FileObject.Size > 0) {
                 var getObjectPromise = s3.getObject(params).promise();
                 getObjectPromise.then(function(data) {
@@ -450,7 +451,7 @@ function getS3Objects(s3ObjectList, prefix) {
             } else {
                 count++;
             }
-        // }
+        }
     });
 }
 
@@ -581,7 +582,7 @@ function processGlobalCommandLine() {
         console.log('Network logging is ON');
     }
 
-    if (process.argv.includes('--reset=remote') || process.argv.includes('--reset=local')) {
-        console.log('Reset options are temporarily disabled due to development issues.');
-    }
+    // if (process.argv.includes('--reset=remote') || process.argv.includes('--reset=local')) {
+    //     console.log('Reset options are temporarily disabled due to development issues.');
+    // }
 }
