@@ -14,8 +14,7 @@ var AWS      = require('aws-sdk'),
 var defaults = {
     scanTimeout: 30,
     s3Timeout: 300000, /* 5 minutes */
-    maximumFileCount: 10000,
-    version: '1.0.17'
+    maximumFileCount: 10000
 };
 
 /**
@@ -565,7 +564,8 @@ function loadPrivateHelpers() {
 
 function processGlobalCommandLine() {
     if (process.argv.includes('--version')) {
-        console.log('Version:', defaults.version);
+        packageJson = require(module.filename + '/../../package.json');
+        console.log(packageJson.version);
     }
 
     if (process.argv.includes('--verbose')) {
@@ -577,8 +577,4 @@ function processGlobalCommandLine() {
         request.debug = true;
         console.log('Network logging is ON');
     }
-
-    // if (process.argv.includes('--reset=remote') || process.argv.includes('--reset=local')) {
-    //     console.log('Reset options are temporarily disabled due to development issues.');
-    // }
 }
