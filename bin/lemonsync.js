@@ -231,6 +231,11 @@ function compareS3FilesWithLocal(s3Files, prefix) {
 
     if (localFilePaths.length === 0) {
         console.log('Your local theme folder is empty.');
+
+        if (process.argv.includes('--reset=remote')) {
+            console.log('Remote theme cannot be overwritten with an empty theme.');
+        }
+
         for (var key in s3Files) {
             if (s3Files.hasOwnProperty(key)) {
                 localKey = key.replace(theme, watchDir);
@@ -240,11 +245,17 @@ function compareS3FilesWithLocal(s3Files, prefix) {
         }
         numberNewS3 = Object.keys(newS3Files).length;
 
+        if (process.argv.includes('--reset=local')) {
+            overwriteLocalWithStore(newS3Files);
+            return;
+        }
+
         if (numberNewS3 > 0) {
             console.log(numberNewS3 + ' new store file(s) were found.');
         } else {
             console.log('No theme files were found locally or in your store.');
             watchForChanges();
+            return;
         }
 
         console.log('\r\nDo you want to overwrite your local theme folder?\r\n');
@@ -274,13 +285,14 @@ function overwriteLocalWithStore(changedFiles) {
     console.log('\r\nOverwriting local theme files...\r\n');
     var count = 0;
 
-    if (pathModule.sep == '\\') {
-        for (var key in changedFiles) {
-            if (changedFiles.hasOwnProperty(key)) {
-                newKey = key.replace(/\//g,"\\");
-                changedFiles[newKey] = changedFiles[key];
-                delete changedFiles[key];
+    for (var key in changedFiles) {
+        if (changedFiles.hasOwnProperty(key)) {
+            newKey = key.replace(/\/$/, "/__isDirectory__"); // Flag for future parsing
+            if (pathModule.sep == '\\') {
+                newKey = newKey.replace(/\//g,"\\");
             }
+            changedFiles[newKey] = changedFiles[key];
+            delete changedFiles[key];
         }
     }
 
@@ -289,6 +301,22 @@ function overwriteLocalWithStore(changedFiles) {
             try {
                 var path = pathModule.dirname(key);
                 mkdirp.sync(path);
+
+                if (key.match(/__isDirectory__/)) {
+                    console.log('- ' + key.replace(/__isDirectory__/, ''));
+                    continue;
+                }
+
+                fileStats = fs.statSync(localFilePath);
+                if (!fileStats) {
+                    // no stats found
+                    continue;
+                }
+
+                if (fileStats.isDirectory()) {
+                    continue;
+                }
+
                 fs.writeFileSync(key, changedFiles[key]);
                 console.log('- ' + key);
             } catch (err) {
