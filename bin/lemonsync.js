@@ -204,7 +204,7 @@ function compareS3FilesWithLocal(s3Files, prefix) {
 
                 console.log('Type "local" to overwrite your local theme: ' + watchDir);
                 console.log('Type "remote" to overwrite your store\'s theme: ' + theme + '\r\n');
-                console.log('Type anything else to begin watching for changes.' + '\r\n');
+                console.log('Hit <enter> to begin watching for local changes.' + '\r\n');
 
                 readInput.prompt();
                 readInput.on('line', function(answer) {
@@ -261,7 +261,7 @@ function compareS3FilesWithLocal(s3Files, prefix) {
         console.log('\r\nDo you want to overwrite your local theme folder?\r\n');
 
         console.log('Type "local" to download your local theme: ' + watchDir);
-        console.log('Type anything else to begin watching for changes.' + '\r\n');
+        console.log('Hit <enter> to begin watching for local changes.' + '\r\n');
 
         readInput.prompt();
         readInput.on('line', function(answer) {
