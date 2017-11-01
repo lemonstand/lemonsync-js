@@ -97,7 +97,6 @@ function emptyLocalFolder(path) {
  * @param s3Files - array of key/body objects that make up a theme
  */
 function compareS3FilesWithLocal(s3Files, prefix) {
-
     var matchingFiles = {};
     var changedLocalFiles = {};
     var changedRemoteFiles = {};
@@ -107,7 +106,6 @@ function compareS3FilesWithLocal(s3Files, prefix) {
     var localPathMatchCount = 0;
 
     var localFilePaths = listFullFilePaths(watchDir);
-
 
     if (process.argv.includes('--reset=local')) {
         emptyLocalFolder(watchDir);
@@ -243,16 +241,18 @@ function compareS3FilesWithLocal(s3Files, prefix) {
                 newS3Files[localKey] = s3Files[key];
             }
         }
-        numberNewS3 = Object.keys(newS3Files).length;
 
         if (process.argv.includes('--reset=local')) {
             overwriteLocalWithStore(newS3Files);
             return;
         }
 
+        numberNewS3 = Object.keys(newS3Files).length;
+
         if (numberNewS3 > 0) {
             console.log(numberNewS3 + ' new store file(s) were found.');
         } else {
+            // Both S3 and local theme are empty
             console.log('No theme files were found locally or in your store.');
             watchForChanges();
             return;
@@ -300,6 +300,7 @@ function overwriteLocalWithStore(changedFiles) {
         if (changedFiles.hasOwnProperty(key)) {
             try {
                 var path = pathModule.dirname(key);
+                // Make the directory in case it doesn't already exist
                 mkdirp.sync(path);
 
                 if (key.match(/__isDirectory__/)) {
@@ -431,8 +432,8 @@ function watchTriggered(eventType, filename) {
                 access = fs.accessSync(localFilePath);
             } catch(err) {
                 if (err.code === 'ENOENT') {
-                    // ENOENT: no such file or directory found.
-                    // Delete the folder in S3 and all files within.
+                    // ENOENT: no such file or directory found - this means watched file was renamed or deleted.
+                    // Delete the file or folder in S3 and all files within.
                     params = {
                         Bucket: bucket + key
                     }
@@ -451,14 +452,16 @@ function watchTriggered(eventType, filename) {
             }
 
             if (fileStats.isDirectory()) {
+                // Get everything in the watched directory
                 var localFilePaths = listFullFilePaths(localFilePath);
-                /**
-                 * Ignore file patterns
-                 */
+
+                // Apply ignore file patterns
                 localFilePaths = ign.filter(localFilePaths);
 
                 localFilePaths.forEach( function( localFilePath, index ) {
                     shortLocalPath = localFilePath.replace(watchDir + pathModule.sep, '');
+
+                    // Trigger watch event capture on each object within the directory
                     watchTriggered(eventType, shortLocalPath);
                 });
                 return;
