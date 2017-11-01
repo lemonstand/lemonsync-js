@@ -228,8 +228,6 @@ function compareS3FilesWithLocal(s3Files, prefix) {
     });
 
     if (localFilePaths.length === 0) {
-        console.log('Your local theme folder is empty.');
-
         if (process.argv.includes('--reset=remote')) {
             console.log('Remote theme cannot be overwritten with an empty theme.');
         }
@@ -245,6 +243,8 @@ function compareS3FilesWithLocal(s3Files, prefix) {
         if (process.argv.includes('--reset=local')) {
             overwriteLocalWithStore(newS3Files);
             return;
+        } else {
+            console.log('Your local theme folder is empty.');
         }
 
         numberNewS3 = Object.keys(newS3Files).length;
@@ -266,7 +266,7 @@ function compareS3FilesWithLocal(s3Files, prefix) {
         readInput.prompt();
         readInput.on('line', function(answer) {
             if (answer == 'local' && (numberNewS3 > 0)) {
-                overwriteLocalWithStore(changedRemoteFiles);
+                overwriteLocalWithStore(newS3Files);
             } else if (answer == 'lemons') {
                 console.log('\r\n🍋 🍋 🍋 🍋 🍋 🍋 🍋  Yummy! 🍋 🍋 🍋 🍋 🍋 🍋 🍋\r\n');
             } else if (answer == 'john lemon') {
@@ -291,6 +291,9 @@ function overwriteLocalWithStore(changedFiles) {
             if (pathModule.sep == '\\') {
                 newKey = newKey.replace(/\//g,"\\");
             }
+            if (newKey === key) {
+                continue;
+            }
             changedFiles[newKey] = changedFiles[key];
             delete changedFiles[key];
         }
@@ -305,16 +308,6 @@ function overwriteLocalWithStore(changedFiles) {
 
                 if (key.match(/__isDirectory__/)) {
                     console.log('- ' + key.replace(/__isDirectory__/, ''));
-                    continue;
-                }
-
-                fileStats = fs.statSync(localFilePath);
-                if (!fileStats) {
-                    // no stats found
-                    continue;
-                }
-
-                if (fileStats.isDirectory()) {
                     continue;
                 }
 
