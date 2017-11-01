@@ -336,16 +336,62 @@ function watchForChanges() {
     console.log('\r\n🍋  Watching for changes... 🍋\r\n');
 
     fs.watch(watchDir, {recursive: true}, function(eventType, filename) {
+        watchTriggered(eventType, filename);
+    });
+}
+
+function watchTriggered(eventType, filename) {
         if (filename) {
             localFilePath = watchDir + '/' + filename;
+
             if (ign.ignores(localFilePath)) {
                 return;
             }
+
             if (pathModule.sep == '\\') {
                 filename = filename.replace(/\\/g,"/");
             }
 
             key = prefix + theme + '/' + filename;
+
+            // Get some stats on the file path
+            try {
+                access = fs.accessSync(localFilePath);
+            } catch(err) {
+                if (err.code === 'ENOENT') {
+                    // ENOENT: no such file or directory found.
+                    // Delete the folder in S3 and all files within.
+                    params = {
+                        Bucket: bucket + key
+                    }
+                    emptyBucket(key);
+                    console.log(`- ${filename} deleted`);
+                } else {
+                    throw err;
+                }
+                return;
+            }
+
+            fileStats = fs.statSync(localFilePath);
+            if (!fileStats) {
+                // no stats found
+                return;
+            }
+
+            if (fileStats.isDirectory()) {
+                var localFilePaths = listFullFilePaths(localFilePath);
+                /**
+                 * Ignore file patterns
+                 */
+                localFilePaths = ign.filter(localFilePaths);
+
+                localFilePaths.forEach( function( localFilePath, index ) {
+                    shortLocalPath = localFilePath.replace(watchDir + pathModule.sep, '');
+                    watchTriggered(eventType, shortLocalPath);
+                });
+                return;
+            }
+
             localFileBody = fs.readFileSync(localFilePath);
             // Reading local file to send to S3
             var params = {
@@ -366,6 +412,35 @@ function watchForChanges() {
         } else {
             console.log('Filename not provided');
         }
+}
+
+function emptyBucket(prefix){
+    var params = {
+        Bucket: bucket,
+        Prefix: prefix
+    };
+
+    s3.listObjectsV2(params, function(err, data) {
+        if (err) throw err;
+
+        if (data.Contents.length == 0) return;
+
+        params = {
+            Bucket: bucket
+        };
+        params.Delete = {Objects:[]};
+
+        data.Contents.forEach(function(content) {
+            params.Delete.Objects.push({Key: content.Key});
+        });
+
+        s3.deleteObjects(params, function(err, data) {
+            if (err) throw err;
+            if (data.Deleted.length == 1000) {
+                // Max object delete reached, run again
+                emptyBucket(prefix);
+            }
+        });
     });
 }
 
