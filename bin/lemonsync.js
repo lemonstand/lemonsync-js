@@ -43,13 +43,21 @@ readConfig();
 function readConfig() {
     if (fs.existsSync(localConfig)) {
         var config = fs.readFileSync(localConfig, 'utf8');
-        var json = JSON.parse(config);
+
+        try {
+            var json = JSON.parse(config);
+        } catch(err) {
+            console.log('Error occured trying to parse lemonsync.json: \r\n' + err.message);
+            return;
+        }
+
         if (json.theme_code) {
             theme = json.theme_code;
         } else {
             console.log('Field "theme_code" not found in lemonsync.json, please add this field.');
             return;
         }
+
         if (json.store) {
             storeName = json.store;
         } else {
