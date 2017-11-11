@@ -238,6 +238,7 @@ function compareS3FilesWithLocal(s3Files, prefix) {
     if (localFilePaths.length === 0) {
         if (process.argv.includes('--reset=remote')) {
             console.log('Remote theme cannot be overwritten with an empty theme.');
+            process.exit();
         }
 
         for (var key in s3Files) {
