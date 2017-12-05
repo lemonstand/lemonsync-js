@@ -12,7 +12,7 @@ var AWS      = require('aws-sdk'),
 
 /** Some CLI defaults */
 var defaults = {
-    scanTimeout: 30,
+    scanTimeout: 1500,
     s3Timeout: 300000, /* 5 minutes */
     maximumFileCount: 10000
 };
