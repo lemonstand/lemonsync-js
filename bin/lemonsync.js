@@ -14,7 +14,8 @@ var AWS      = require('aws-sdk'),
 var defaults = {
     scanTimeout: 1500,
     s3Timeout: 300000, /* 5 minutes */
-    maximumFileCount: 10000
+    maximumFileCount: 10000,
+    maxS3FileDeletes: 1000
 };
 
 /**
@@ -29,6 +30,7 @@ var accessKeyId,
 
 var watchDir = process.cwd(),
     theme = watchDir.match(/([^\/\\]*)(\/\\)*$/)[1],
+    directoryFileString = "__isDirectory__",
     storeName,
     apiKey,
     localConfig = 'lemonsync.json',
@@ -296,7 +298,7 @@ function overwriteLocalWithStore(changedFiles) {
 
     for (var key in changedFiles) {
         if (changedFiles.hasOwnProperty(key)) {
-            newKey = key.replace(/\/$/, "/__isDirectory__"); // Flag for future parsing
+            newKey = key.replace(/\/$/, "/"+directoryFileString); // Flag for future parsing
             if (pathModule.sep == '\\') {
                 newKey = newKey.replace(/\//g,"\\");
             }
@@ -513,7 +515,7 @@ function emptyBucket(prefix){
 
         s3.deleteObjects(params, function(err, data) {
             if (err) throw err;
-            if (data.Deleted.length == 1000) {
+            if (data.Deleted.length == defaults.maxS3FileDeletes) {
                 // Max object delete reached, run again
                 emptyBucket(prefix);
             }
