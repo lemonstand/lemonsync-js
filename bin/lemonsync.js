@@ -12,9 +12,10 @@ var AWS      = require('aws-sdk'),
 
 /** Some CLI defaults */
 var defaults = {
-    scanTimeout: 30,
+    scanTimeout: 1500,
     s3Timeout: 300000, /* 5 minutes */
-    maximumFileCount: 10000
+    maximumFileCount: 10000,
+    maxS3FileDeletes: 1000
 };
 
 /**
@@ -29,6 +30,7 @@ var accessKeyId,
 
 var watchDir = process.cwd(),
     theme = watchDir.match(/([^\/\\]*)(\/\\)*$/)[1],
+    directoryFileString = "__isDirectory__",
     storeName,
     apiKey,
     localConfig = 'lemonsync.json',
@@ -43,13 +45,21 @@ readConfig();
 function readConfig() {
     if (fs.existsSync(localConfig)) {
         var config = fs.readFileSync(localConfig, 'utf8');
-        var json = JSON.parse(config);
+
+        try {
+            var json = JSON.parse(config);
+        } catch(err) {
+            console.log('Error occured trying to parse lemonsync.json: \r\n' + err.message);
+            return;
+        }
+
         if (json.theme_code) {
             theme = json.theme_code;
         } else {
             console.log('Field "theme_code" not found in lemonsync.json, please add this field.');
             return;
         }
+
         if (json.store) {
             storeName = json.store;
         } else {
@@ -113,6 +123,15 @@ function compareS3FilesWithLocal(s3Files, prefix) {
     }
 
     /**
+     * Interface for reading typed user input
+     */
+    readInput = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        prompt: '🍋  >'
+    });
+
+    /**
      * Ignore file patterns
      */
     localFilePaths = ign.filter(localFilePaths);
@@ -156,14 +175,6 @@ function compareS3FilesWithLocal(s3Files, prefix) {
             numberNewLocal = Object.keys(newLocalFiles).length;
             numberNewS3 = Object.keys(newS3Files).length;
 
-                /**
-                 * Interface for reading typed user input
-                 */
-                readInput = readline.createInterface({
-                    input: process.stdin,
-                    output: process.stdout,
-                    prompt: '🍋  >'
-                });
                 // combine objects
                 Object.assign(changedLocalFiles, newLocalFiles);
                 Object.assign(changedRemoteFiles, newS3Files);
@@ -203,6 +214,7 @@ function compareS3FilesWithLocal(s3Files, prefix) {
 
                 console.log('Type "local" to overwrite your local theme: ' + watchDir);
                 console.log('Type "remote" to overwrite your store\'s theme: ' + theme + '\r\n');
+                console.log('Hit <enter> to begin watching for local changes.' + '\r\n');
 
                 readInput.prompt();
                 readInput.on('line', function(answer) {
@@ -224,19 +236,77 @@ function compareS3FilesWithLocal(s3Files, prefix) {
 
         }
     });
+
+    if (localFilePaths.length === 0) {
+        if (process.argv.includes('--reset=remote')) {
+            console.log('Remote theme cannot be overwritten with an empty theme.');
+            process.exit();
+        }
+
+        for (var key in s3Files) {
+            if (s3Files.hasOwnProperty(key)) {
+                localKey = key.replace(theme, watchDir);
+                // New remote file found, store in array of new files.
+                newS3Files[localKey] = s3Files[key];
+            }
+        }
+
+        if (process.argv.includes('--reset=local')) {
+            overwriteLocalWithStore(newS3Files);
+            return;
+        } else {
+            console.log('Your local theme folder is empty.');
+        }
+
+        numberNewS3 = Object.keys(newS3Files).length;
+
+        if (numberNewS3 > 0) {
+            console.log(numberNewS3 + ' new store file(s) were found.');
+        } else {
+            // Both S3 and local theme are empty
+            console.log('No theme files were found locally or in your store.');
+            watchForChanges();
+            return;
+        }
+
+        console.log('\r\nDo you want to overwrite your local theme folder?\r\n');
+
+        console.log('Type "local" to download your local theme: ' + watchDir);
+        console.log('Hit <enter> to begin watching for local changes.' + '\r\n');
+
+        readInput.prompt();
+        readInput.on('line', function(answer) {
+            if (answer == 'local' && (numberNewS3 > 0)) {
+                overwriteLocalWithStore(newS3Files);
+            } else if (answer == 'lemons') {
+                console.log('\r\n🍋 🍋 🍋 🍋 🍋 🍋 🍋  Yummy! 🍋 🍋 🍋 🍋 🍋 🍋 🍋\r\n');
+            } else if (answer == 'john lemon') {
+                console.log('██▛█████▜▛▀▀▞▜▜▜█▛▛▛█████████▜███▛███▛▛▀▛█▛█████████████████\r\n█▟▜▙▛██▛▌▌▜▐▐▟▜▛▌▛████████▛█▞▙▘▙▌▛▞▄█▌▌▛▛█████▜█▙█▜█████████\r\n█▟█▟███▟▙▀▞▖▙▜▜▟▟██▛█▛▙█▟▛▜▝▖▝▌▙▜▐▚▖▙▛▞▞███████████████▙█▟▙█\r\n█▟▟▙██▙▙▌▌▚▙▜▜▛▟▞▟▙▛▚▚█▟▚▚▀  ▝▞▟▝▞▖▝▙▌▜▟████████████████████\r\n█▟▙▙█▙█▛█▟▌▙▜▛▌▌▛▌▙▟▜▐▐ ▘   ▖▘▛ ▚▝▖▘ ▛▙█████▙███████████▙█▙█\r\n█▟▟▙███▛█▙▜▞█▜▜▐▐▐▙▜▝▖▖▚▘▝   ▚ ▝ ▚ ▘▘▐▐▙████████████████▜███\r\n█▟▙▜█▛▙█▙▛█▜█▜▞▞▞▙▌▙▚ ▗▘▘  ▖▚▘ ▗▝▗▝ ▚▝▞▜██████████████████▟█\r\n█▟▜█▛██▜▟██▐█▙▜▞▌▌▌▜  ▖ ▝ ▝▗▛    ▘ ▘▗▗▝▖▛█▙██████████▟███▜██\r\n█▟████▟██▜▞▙█▟█▞▌▌▞▐▌▖▗ ▝ ▗▐▖ ▗▝  ▗▝  ▖▞▐▐███████▛█▙██████▛█\r\n█▟▙████▜▟▛█▙██▙▛▌▌▖▖▌ ▗  ▝  ▘▖▖     ▖▘▖▝▝▞▞▛███▛▙████████▙██\r\n█▙███▟▜▛███▟▐▜▙█▚▘▗  ▘       ▝   ▖▘▗ ▖▞▐▝▗▚▜▚███████████████\r\n▙▛█▜▟▛██▟█▛▙▜▜▞█▚▚▖▞▄▖▚▗ ▖ ▗ ▖ ▗▗▗▞▄▙█▟▙█▙▙▙█████████████▙██\r\n█▛▛▙▛██▛███▛▜▀▞▜▛▛▞▘▘▀▜▟▙▚▌▖ ▖▝▗▚█▟██▛▀▀▛████▜▟█████████████\r\n▛█▜█▜█▟████▛▖▚▝▞▖▖▝▝███▟▟▛▙▝   ▖█▜█▚▄▟██▜▙▙▛██████████████▟█\r\n█▛█▟▛███████▖▗▝▖▖▖▄▄▄█▟▛▙▜▄ ▖▘▚▚██▚█▛▙▄▟▙█▟█▛███████████████\r\n█▜▛█▛█████▙▛▀▙▄▗▐▀▀▜█▜▚▀▀ ▚    ▝█▙█▜▜▀███████▜█████████▛▙█▙█\r\n█▜▛▙█████▙█   ▐   ▘▘ ▝ ▞ ▝▐    ▘▜▟▟▌▌▞▖▞▟▟▜▟▞▛▙█▙█████▜█████\r\n█▜▛█▟█▙▙█▙▛▞   ▗    ▖▖▘ ▗▗▘     ▜▟▞▜▐▗▞▞▄▙▜▐▐▐▟▙██████████▛█\r\n█▛█▜▙▙▙██▟▜▖    ▘▖      ▖▖      ▙▙▜▟▝▞▝▞▞▖▘▄▚▜▟█████▙███████\r\n█▜▛█▞███▙▛▙█      ▘▘  ▘▚▝       ▌█▚▚▜▞▄▖▄▐▚▙███▜██████████▜█\r\n███▙█▙█▟█▀▙▜▖▗      ▝▝▝        ▗▐███▐▐▐▞▙▛█▟█▙████▛█████████\r\n█▟▙█▙█▜█▜▛▛▛▞  ▖               ▖██▜█▌▌▖▚▚▜▜▛█████████████▟██\r\n█▛█▙███▟██▟▜▙▝  ▖       ▘     ▗▝▟▛▙█▛▞▞▞▞▟▛███████████▜▟██▙█\r\n██▛█▙█▟▛▙█▜▛▙▝ ▘ ▝       ▝▜▙▖▞▄▟████▜▞▞▐▐▙███▛███▛███████▙██\r\n█▟█▜▟█▙█▛█▚▛█ ▚▗▝           ▘▛███████▐▐▐▚▛██▜███▙███████████\r\n█▜▟██▟▜▙██▜█▜▚ ▖▗▝           ▞▛█████▟▙▙▜▚██▜██████████▛█▙█▛█\r\n███▜▟██▛███▟█▙▗   ▖▝ ▗ ▖▖▗▗ ▝▝▝▞▟█▜▟█▙▛▛█▜▟██████████▟██████\r\n█▙███▙███▟▛█▜▟▄▝ ▘    ▌▙▙▙▄▟▟▄▄▟▟███████▛██████▟███▛███▛▙███\r\n█▜▙█▟▛▙█▟█████▙▌▖▗ ▖ ▘▘▘  ▘▘▘▀▀▀▜▜▛█▛█▟▙██████▜███▜██▛████▙█\r\n██▜▛▙██▛█▟▙█▜███▖▖▖▗▝ ▘     ▚▚▟▟▛█▜▛█▙▙█▙██▛█▟███▟██▛████▜██\r\n█▟████▙███▜▟█▙█▙▜▄▗  ▘   ▗▝▝▞▌▛▙█▜▛█▙▛█▙███████████████▙████\r\n██▜▟█▟█▜█▟██▜█▜▀▞▐▐▐▗ ▖       ▝▝▝▝▞▚▚█▛███▙████████▙██▜███▜█\r\n█▟██▜█▟██▜▛▛▀   ▞▐▐▐▞▖ ▖         ▘▝▞▙████▜███████████████▟██\r\n██▜▟█▛█▜▞▛▝     ▖▘▖▚▐▜▚▗▗ ▖▗ ▖▗▘▞▐▞▟█▙██████████████████████\r\n█▟██▜▛▀▚▚▘       ▘▝▖▚▐▚▙▌▙▐▗▚▞▄▙▜▙██████▜███████████████████\r\n███▝▚▄█▟▟▌      ▝▟▄▄▙▄▙▙███████▟████▟██▟████████████████████');
+            } else if (answer == 'lemonstand') {
+                console.log('▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞█\r\n▙▜▝ ▘▝ ▘▝ ▀▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▞▙▜▟\r\n▞▙   ▞▀▗▄  █▞▚▜▞▌▀▝▚▜▝▙▜▝▙▜▝▘▀▐▙▀▞▙▀▞▌▀▝▌▀▝▘▜▞▘▛▟▘▜▞▌▛▝▘▀▐▙▜\r\n▜▟ ▗▀   ▝▖ ▙▜▝▙▜▚▝▘▛▙▗▝▌▖▞▌▞▛▟ ▞ ▞▞ ▛▖▀▙▜▞ ▛▟ ▌▜▞▖▖▜ ▜ ▛▟▖▞█\r\n▙▚ ▝▘   ▞  ▙▙▝▞▙▌▐▜▜▖▐▖▗▘▐▖▚▜▞▘▛▗▙▝ ▛▞▙ ▙▜ █▞▗▄ ▛ ▙▖▘▜ ▛▌▘▟▜\r\n▞▛  ▀▘▄▀   ▙▚▄▄▖▙▄▗▄▙▞▟▜▚▟▟▄▄▗▛▛▄▞▛▄▜▄▗▞▞▙▄▌▌▙▚▙▟▄▚▙▄▜▄▗▄▜▞█\r\n▜▜▄▄▗▖▖▖▖▄▐▞▛▟▐▞▙▚▛▟▐▞▙▙▜▞▄▌▙▜▞▙▙▜▜▞▙▚▛▟▜▟▞▟▜▞▙▚▌▙▜▞▞▙▚▛▞▙▜▟\r\n█▟▟▟▙█▟█▟▙█▟█▟▙█▟▙█▟▙█▟▟▙█▟▟▙█▟▟▟▙▙█▟▙█▟▙▙█▟▙█▟▙█▟▙██▟▙██▟▙█');
+            } else {
+                watchForChanges();
+            }
+            readInput.close();
+        });
+    }
 }
 
 function overwriteLocalWithStore(changedFiles) {
     console.log('\r\nOverwriting local theme files...\r\n');
     var count = 0;
 
-    if (pathModule.sep == '\\') {
-        for (var key in changedFiles) {
-            if (changedFiles.hasOwnProperty(key)) {
-                newKey = key.replace(/\//g,"\\");
-                changedFiles[newKey] = changedFiles[key];
-                delete changedFiles[key];
+    for (var key in changedFiles) {
+        if (changedFiles.hasOwnProperty(key)) {
+            newKey = key.replace(/\/$/, "/"+directoryFileString); // Flag for future parsing
+            if (pathModule.sep == '\\') {
+                newKey = newKey.replace(/\//g,"\\");
             }
+            if (newKey === key) {
+                continue;
+            }
+            changedFiles[newKey] = changedFiles[key];
+            delete changedFiles[key];
         }
     }
 
@@ -244,7 +314,14 @@ function overwriteLocalWithStore(changedFiles) {
         if (changedFiles.hasOwnProperty(key)) {
             try {
                 var path = pathModule.dirname(key);
+                // Make the directory in case it doesn't already exist
                 mkdirp.sync(path);
+
+                if (key.match(/__isDirectory__/)) {
+                    console.log('- ' + key.replace(/__isDirectory__/, ''));
+                    continue;
+                }
+
                 fs.writeFileSync(key, changedFiles[key]);
                 console.log('- ' + key);
             } catch (err) {
@@ -336,16 +413,64 @@ function watchForChanges() {
     console.log('\r\n🍋  Watching for changes... 🍋\r\n');
 
     fs.watch(watchDir, {recursive: true}, function(eventType, filename) {
+        watchTriggered(eventType, filename);
+    });
+}
+
+function watchTriggered(eventType, filename) {
         if (filename) {
             localFilePath = watchDir + '/' + filename;
+
             if (ign.ignores(localFilePath)) {
                 return;
             }
+
             if (pathModule.sep == '\\') {
                 filename = filename.replace(/\\/g,"/");
             }
 
             key = prefix + theme + '/' + filename;
+
+            // Get some stats on the file path
+            try {
+                access = fs.accessSync(localFilePath);
+            } catch(err) {
+                if (err.code === 'ENOENT') {
+                    // ENOENT: no such file or directory found - this means watched file was renamed or deleted.
+                    // Delete the file or folder in S3 and all files within.
+                    params = {
+                        Bucket: bucket + key
+                    }
+                    emptyBucket(key);
+                    console.log(`- ${filename} deleted`);
+                } else {
+                    throw err;
+                }
+                return;
+            }
+
+            fileStats = fs.statSync(localFilePath);
+            if (!fileStats) {
+                // no stats found
+                return;
+            }
+
+            if (fileStats.isDirectory()) {
+                // Get everything in the watched directory
+                var localFilePaths = listFullFilePaths(localFilePath);
+
+                // Apply ignore file patterns
+                localFilePaths = ign.filter(localFilePaths);
+
+                localFilePaths.forEach( function( localFilePath, index ) {
+                    shortLocalPath = localFilePath.replace(watchDir + pathModule.sep, '');
+
+                    // Trigger watch event capture on each object within the directory
+                    watchTriggered(eventType, shortLocalPath);
+                });
+                return;
+            }
+
             localFileBody = fs.readFileSync(localFilePath);
             // Reading local file to send to S3
             var params = {
@@ -366,6 +491,35 @@ function watchForChanges() {
         } else {
             console.log('Filename not provided');
         }
+}
+
+function emptyBucket(prefix){
+    var params = {
+        Bucket: bucket,
+        Prefix: prefix
+    };
+
+    s3.listObjectsV2(params, function(err, data) {
+        if (err) throw err;
+
+        if (data.Contents.length == 0) return;
+
+        params = {
+            Bucket: bucket
+        };
+        params.Delete = {Objects:[]};
+
+        data.Contents.forEach(function(content) {
+            params.Delete.Objects.push({Key: content.Key});
+        });
+
+        s3.deleteObjects(params, function(err, data) {
+            if (err) throw err;
+            if (data.Deleted.length == defaults.maxS3FileDeletes) {
+                // Max object delete reached, run again
+                emptyBucket(prefix);
+            }
+        });
     });
 }
 
