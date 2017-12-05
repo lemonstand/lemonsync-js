@@ -81,7 +81,6 @@ Example: [lemonsync.json](https://raw.githubusercontent.com/lemonstand/lemonsync
 | `--network-logging` | Show detail of each network request |
 
 
-
 ### Advanced options
 
 **Warning: using the `--reset=remote` option will overwrite your store's remote theme and can delete your remote theme if used incorrectly.**
