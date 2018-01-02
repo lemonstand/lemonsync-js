@@ -414,7 +414,6 @@ function watchForChanges() {
     console.log('\r\n🍋  Watching for changes... 🍋\r\n');
 
     watch(watchDir, {recursive: true}, function(eventType, filename) {
-	console.log(eventType);
         watchTriggered(eventType, filename);
     });
 }
