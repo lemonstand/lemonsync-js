@@ -8,7 +8,8 @@ var AWS      = require('aws-sdk'),
     pathModule = require('path'),
     ignore = require("ignore"),
     rimraf = require("rimraf"),
-    mime = require('mime');
+    mime = require('mime'),
+    watch = require('node-watch');
 
 /** Some CLI defaults */
 var defaults = {
@@ -412,7 +413,8 @@ function uploadLocalToStore(changedFiles) {
 function watchForChanges() {
     console.log('\r\n🍋  Watching for changes... 🍋\r\n');
 
-    fs.watch(watchDir, {recursive: true}, function(eventType, filename) {
+    watch(watchDir, {recursive: true}, function(eventType, filename) {
+	console.log(eventType);
         watchTriggered(eventType, filename);
     });
 }
