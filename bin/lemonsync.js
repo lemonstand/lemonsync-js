@@ -460,11 +460,17 @@ function watchForChanges() {
 
 function watchTriggered(eventType, filename) {
   if (filename) {
-    localFilePath = watchDir + "/" + filename;
+    localFilePath = filename;
 
-    console.details("triggered", "Watch triggered with", eventType, filename);
+    console.details(
+      "triggered",
+      "Watch triggered with",
+      eventType,
+      localFilePath
+    );
 
     if (ign.ignores(localFilePath)) {
+      console.details("ignoring", "Watch ignored", eventType, localFilePath);
       return;
     }
 
@@ -472,7 +478,10 @@ function watchTriggered(eventType, filename) {
       filename = filename.replace(/\\/g, "/");
     }
 
-    key = prefix + theme + "/" + filename;
+    key = prefix + theme + "/" + filename.replace(process.cwd(), "");
+    key.replace(/\/\//g, "/"); // clean up key
+
+    console.details("attempting", "Synchronizing", eventType, key);
 
     // Get some stats on the file path
     try {
@@ -485,7 +494,6 @@ function watchTriggered(eventType, filename) {
           Bucket: bucket + key
         };
         emptyBucket(key);
-        console.log(`- ${filename} deleted`, err, err.code);
       } else {
         throw err;
       }
@@ -514,8 +522,8 @@ function watchTriggered(eventType, filename) {
       return;
     }
 
-    localFileBody = fs.readFileSync(localFilePath);
     // Reading local file to send to S3
+    localFileBody = fs.readFileSync(localFilePath);
     var params = {
       Bucket: bucket,
       Key: key,
@@ -523,10 +531,12 @@ function watchTriggered(eventType, filename) {
       ContentType: mime.getType(localFilePath)
     };
 
+    console.details("putting", key, mime.getType(localFilePath));
+
     var putObjectPromise = s3.putObject(params).promise();
     putObjectPromise
       .then(function(data) {
-        console.log(`- ${filename} touched`);
+        console.log(`- ${filename} updated`);
         var cacheKeys = [filename];
         touchLSCache(cacheKeys);
       })
