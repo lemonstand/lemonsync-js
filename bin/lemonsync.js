@@ -495,6 +495,7 @@ function watchTriggered(eventType, filename) {
           Bucket: bucket + key
         };
         emptyBucket(key);
+        console.log(`- ${relativePath} deleted`);
       } else {
         throw err;
       }
