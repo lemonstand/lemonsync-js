@@ -460,7 +460,8 @@ function watchForChanges() {
 
 function watchTriggered(eventType, filename) {
   if (filename) {
-    localFilePath = filename;
+    (localFilePath = filename),
+      (relativePath = filename.replace(process.cwd(), ""));
 
     console.details(
       "triggered",
@@ -478,8 +479,8 @@ function watchTriggered(eventType, filename) {
       filename = filename.replace(/\\/g, "/");
     }
 
-    key = prefix + theme + "/" + filename.replace(process.cwd(), "");
-    key.replace(/\/\//g, "/"); // clean up key
+    key = prefix + theme + "/" + relativePath;
+    key = key.replace(/[\/]+/g, "/"); // clean up key
 
     console.details("attempting", "Synchronizing", eventType, key);
 
@@ -536,8 +537,9 @@ function watchTriggered(eventType, filename) {
     var putObjectPromise = s3.putObject(params).promise();
     putObjectPromise
       .then(function(data) {
-        console.log(`- ${filename} updated`);
-        var cacheKeys = [filename];
+        console.log(`- .${relativePath} updated`);
+
+        var cacheKeys = [relativePath.replace(/^\//, "")];
         touchLSCache(cacheKeys);
       })
       .catch(function(err) {
@@ -593,6 +595,8 @@ function touchLSCache(keys) {
     },
     json: { keys: keys }
   };
+
+  console.details("Cache", "Clearing cache", JSON.stringify(options));
 
   function callback(error, response, body) {
     if (!error && response.statusCode == 200) {
