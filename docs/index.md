@@ -5,7 +5,7 @@ LemonSyncJS is a tool for syncing local theme files with a live [LemonStand](htt
 
 ## Installation
 
-To install LemonSync, first install [Node.js](https://nodejs.org/en/). NodeJS includes `npm`, the package manager for NodeJS applications.
+To install LemonSync, first install [Node.js](https://nodejs.org/en/) 6 or newer. NodeJS includes `npm`, the package manager for NodeJS applications.
 
 To confirm that you have `npm` installed you can run this command in your terminal:
 
